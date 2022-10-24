@@ -43,7 +43,12 @@ namespace JiraExport
 
                 if (type != null)
                 {
-                    var revisions = issue.Revisions.Select(r => MapRevision(r)).ToList();
+                    var actualIndex = 0;
+                    var revisions = issue.Revisions
+                        .OrderBy(x => x.Time).ThenBy(x => x.Index)
+                        .Select(x => MapRevision(x, ref actualIndex))
+                        .Where(x => x != null)
+                        .ToList();
                     wiItem.OriginId = issue.Key;
                     wiItem.Type = type;
                     wiItem.Revisions = revisions;
@@ -293,7 +298,7 @@ namespace JiraExport
             return fields;
         }
 
-        internal WiRevision MapRevision(JiraRevision r)
+        internal WiRevision MapRevision(JiraRevision r, ref int wiIndex)
         {
             Logger.Log(LogLevel.Debug, $"Mapping revision {r.Index}.");
 
@@ -301,17 +306,19 @@ namespace JiraExport
             var fields = MapFields(r);
             var links = MapLinks(r);
 
-            return new WiRevision()
-            {
-                ParentOriginId = r.ParentItem.Key,
-                Index = r.Index,
-                Time = r.Time,
-                Author = MapUser(r.Author),
-                Attachments = attachments,
-                Fields = fields,
-                Links = links,
-                AttachmentReferences = attachments.Any()
-            };
+            return attachments.Any() || fields.Any() || links.Any()
+                ? new WiRevision
+                {
+                    ParentOriginId = r.OriginId,
+                    Index = wiIndex++,
+                    Time = r.Time,
+                    Author = MapUser(r.Author),
+                    Attachments = attachments,
+                    Fields = fields,
+                    Links = links,
+                    AttachmentReferences = attachments.Any()
+                }
+                : null;
         }
 
         protected override string MapUser(string sourceUser)
