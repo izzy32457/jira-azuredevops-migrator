@@ -148,7 +148,7 @@ namespace JiraExport
                 return null;
 
             var iterationPaths = iterationPathsString.Split(',').AsEnumerable();
-            iterationPaths = iterationPaths.Select(ip => ip.Trim());
+            iterationPaths = iterationPaths.Select(EnsureValidIterationPathCharacters);
 
             var iterationPath = iterationPaths.Last();
 
@@ -206,6 +206,7 @@ namespace JiraExport
                 return "";
             }
         }
+
         private static string SetCustomFieldName(string sourceField, bool isCustomField, string customFieldName)
         {
             if (isCustomField)
@@ -214,6 +215,31 @@ namespace JiraExport
             }
 
             return sourceField;
+        }
+
+        private static string EnsureValidIterationPathCharacters(string path)
+        {
+            // remove invalid characters according to microsoft documentation
+            // https://learn.microsoft.com/en-us/azure/devops/organizations/settings/naming-restrictions?view=azure-devops
+            var cleanPath = path.Trim()
+                .Replace("&", "and")
+                .Replace('"', '_')
+                .Replace('<', '_')
+                .Replace('>', '_')
+                .Replace('$', '_')
+                .Replace('?', '_')
+                .Replace(':', '_')
+                .Replace('%', '_')
+                .Replace('|', '_')
+                .Replace('+', '_')
+                .Replace('#', '_')
+                .Replace('\\', '-')
+                .Replace('/', '-')
+                .Replace('*', '_');
+
+            cleanPath = Path.GetInvalidPathChars().Aggregate(cleanPath, (current, invalidPathChar) => current.Replace(invalidPathChar, '_'));
+
+            return Path.GetInvalidFileNameChars().Aggregate(cleanPath, (current, invalidPathChar) => current.Replace(invalidPathChar, '_'));
         }
     }
 
