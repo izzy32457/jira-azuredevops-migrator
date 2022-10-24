@@ -332,8 +332,8 @@ namespace JiraExport
         {
             var fields = new Dictionary<string, object>();
 
-            var remoteFields = (JObject)remoteIssue.SelectToken("$.fields");
-            var renderedFields = (JObject)remoteIssue.SelectToken("$.renderedFields");
+            var remoteFields = (JObject)remoteIssue.SelectToken("$.fields") ?? throw new InvalidOperationException("issue fields not found in API response.");
+            var renderedFields = (JObject)remoteIssue.SelectToken("$.renderedFields") ?? throw new InvalidOperationException("rendered fields not found in API response.");
 
             var extractName = new Func<JToken, object>((t) => t.ExValue<string>("$.name"));
             var extractAccountIdOrUsername = new Func<JToken, object>((t) => t.ExValue<string>("$.name") ?? t.ExValue<string>("$.accountId"));
