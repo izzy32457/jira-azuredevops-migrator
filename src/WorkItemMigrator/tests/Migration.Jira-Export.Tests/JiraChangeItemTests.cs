@@ -19,15 +19,15 @@ namespace Migration.Jira_Export.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
         public void When_creating_a_jirachangeitem_object_Then_an_object_is_created()
         {
-            JObject jobj = _fixture.Create<JObject>();
+            var jobj = _fixture.Create<JObject>();
 
-            JiraChangeItem sut = new JiraChangeItem(jobj);
+            var sut = new JiraChangeItem(jobj);
             
             Assert.That(sut, Is.Not.Null);
         }

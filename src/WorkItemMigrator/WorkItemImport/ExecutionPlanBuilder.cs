@@ -20,7 +20,7 @@ namespace WorkItemImport
             var path = _context.MigrationWorkspace;
 
             // get the file attributes for file or directory
-            FileAttributes attr = File.GetAttributes(path);
+            var attr = File.GetAttributes(path);
             if (attr.HasFlag(FileAttributes.Directory))
                 return new ExecutionPlan(BuildExecutionPlanFromDir(), _context);
             else
@@ -36,7 +36,7 @@ namespace WorkItemImport
                 Logger.Log(LogLevel.Debug, $"Analyzing item '{wi.OriginId}'.");
                 foreach (var rev in wi.Revisions)
                 {
-                    var revRef = new RevisionReference() { OriginId = wi.OriginId, RevIndex = rev.Index, Time = rev.Time };
+                    var revRef = new RevisionReference { OriginId = wi.OriginId, RevIndex = rev.Index, Time = rev.Time };
                     actionPlan.Add(revRef);
                 }
             }
@@ -49,7 +49,7 @@ namespace WorkItemImport
 
         private void EnsureIncreasingTimes(List<RevisionReference> actionPlan)
         {
-            for (int i = 1; i < actionPlan.Count; i++)
+            for (var i = 1; i < actionPlan.Count; i++)
             {
                 var prev = actionPlan[i - 1];
                 var current = actionPlan[i];

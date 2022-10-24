@@ -34,7 +34,7 @@ namespace Migration.Wi_Import.Tests
 
             public WorkItem CreateWorkItem(string wiType)
             {
-                WorkItem workItem = new WorkItem();
+                var workItem = new WorkItem();
                 workItem.Id = _wiIdCounter;
                 workItem.Url = $"https://example/workItems/{_wiIdCounter}";
                 workItem.Fields[WiFieldReference.WorkItemType] = wiType;
@@ -51,24 +51,24 @@ namespace Migration.Wi_Import.Tests
 
             public WorkItem UpdateWorkItem(JsonPatchDocument patchDocument, int workItemId)
             {
-                WorkItem wi = _wiCache[workItemId];
-                foreach(JsonPatchOperation op in patchDocument)
+                var wi = _wiCache[workItemId];
+                foreach(var op in patchDocument)
                 {
                     if(op.Operation == Operation.Add)
                     {
                         if (op.Path.StartsWith("/fields/"))
                         {
-                            string field = op.Path.Replace("/fields/", "");
+                            var field = op.Path.Replace("/fields/", "");
                             wi.Fields[field] = op.Value;
                         }
                         else if (op.Path.StartsWith("/relations/"))
                         {
-                            string rel = op.Value.GetType().GetProperty("rel")?.GetValue(op.Value, null).ToString();
-                            string url = op.Value.GetType().GetProperty("url")?.GetValue(op.Value, null).ToString();
-                            object attributes = op.Value.GetType().GetProperty("attributes")?.GetValue(op.Value, null);
-                            string comment = attributes.GetType().GetProperty("comment")?.GetValue(attributes, null).ToString();
+                            var rel = op.Value.GetType().GetProperty("rel")?.GetValue(op.Value, null).ToString();
+                            var url = op.Value.GetType().GetProperty("url")?.GetValue(op.Value, null).ToString();
+                            var attributes = op.Value.GetType().GetProperty("attributes")?.GetValue(op.Value, null);
+                            var comment = attributes.GetType().GetProperty("comment")?.GetValue(attributes, null).ToString();
 
-                            WorkItemRelation wiRelation = new WorkItemRelation();
+                            var wiRelation = new WorkItemRelation();
                             wiRelation.Rel = rel;
                             wiRelation.Url = url;
                             wiRelation.Attributes = new Dictionary<string, object>{ { "comment", comment } };
@@ -80,12 +80,12 @@ namespace Migration.Wi_Import.Tests
                     else if (op.Operation == Operation.Remove) {
                         if (op.Path.StartsWith("/fields/"))
                         {
-                            string field = op.Path.Replace("/fields/", "");
+                            var field = op.Path.Replace("/fields/", "");
                             wi.Fields[field] = "";
                         }
                         else if (op.Path.StartsWith("/relations/"))
                         {
-                            int removeAtIndex = int.Parse(op.Path.Split("/").Last());
+                            var removeAtIndex = int.Parse(op.Path.Split("/").Last());
                             wi.Relations.RemoveAt(removeAtIndex);
                         }
                     }
@@ -95,7 +95,7 @@ namespace Migration.Wi_Import.Tests
 
             public TeamProject GetProject(string projectId)
             {
-                TeamProject tp = new TeamProject();
+                var tp = new TeamProject();
                 Guid projGuid;
                 if(Guid.TryParse(projectId, out projGuid))
                 {
@@ -111,16 +111,16 @@ namespace Migration.Wi_Import.Tests
 
             public List<WorkItemRelationType> GetRelationTypes()
             {
-                WorkItemRelationType hierarchyForward = new WorkItemRelationType
+                var hierarchyForward = new WorkItemRelationType
                 {
                     ReferenceName = "System.LinkTypes.Hierarchy-Forward"
                 };
-                WorkItemRelationType hierarchyReverse = new WorkItemRelationType
+                var hierarchyReverse = new WorkItemRelationType
                 {
                     ReferenceName = "System.LinkTypes.Hierarchy-Reverse"
                 };
 
-                List<WorkItemRelationType> outList = new List<WorkItemRelationType>();
+                var outList = new List<WorkItemRelationType>();
                 outList.Add(hierarchyForward);
                 outList.Add(hierarchyReverse);
                 return outList;
@@ -128,7 +128,7 @@ namespace Migration.Wi_Import.Tests
 
             public AttachmentReference CreateAttachment(WiAttachment wiAttachment)
             {
-                AttachmentReference att = new AttachmentReference();
+                var att = new AttachmentReference();
                 att.Id = Guid.NewGuid();
                 att.Url = "https://example.com";
                 return att;
@@ -153,14 +153,14 @@ namespace Migration.Wi_Import.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
         public void When_calling_ensure_author_fields_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             Assert.That(
                 () => wiUtils.EnsureAuthorFields(null),
                 Throws.InstanceOf<ArgumentException>());
@@ -169,13 +169,13 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_author_fields_with_first_revision_Then_author_is_added_to_fields()
         {
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
             rev.Index = 0;
             rev.Author = "Firstname Lastname";
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             wiUtils.EnsureAuthorFields(rev);
 
             Assert.That(rev.Fields[0].ReferenceName, Is.EqualTo(WiFieldReference.CreatedBy));
@@ -185,12 +185,12 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_author_fields_with_subsequent_revision_Then_author_is_added_to_fields()
         {
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
             rev.Index = 1;
             rev.Author = "Firstname Lastname";
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             wiUtils.EnsureAuthorFields(rev);
 
             Assert.That(rev.Fields[0].ReferenceName, Is.EqualTo(WiFieldReference.ChangedBy));
@@ -200,8 +200,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_assignee_field_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             Assert.That(
                 () => wiUtils.EnsureAssigneeField(null, null),
                 Throws.InstanceOf<ArgumentException>());
@@ -210,16 +210,16 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_assignee_field_with_first_revision_Then_assignee_is_added_to_fields()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils sut = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var sut = new WitClientUtils(witClientWrapper);
 
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
             rev.Index = 0;
 
-            WorkItem createdWI = sut.CreateWorkItem("User Story");
+            var createdWI = sut.CreateWorkItem("User Story");
 
-            IdentityRef assignedTo = new IdentityRef();
+            var assignedTo = new IdentityRef();
             assignedTo.UniqueName = "Mr. Test";
 
             createdWI.Fields[WiFieldReference.AssignedTo] = assignedTo;
@@ -233,8 +233,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_date_fields_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             Assert.That(
                 () => wiUtils.EnsureDateFields(null, null),
                 Throws.InstanceOf<ArgumentException>());
@@ -243,14 +243,14 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_date_fields_with_first_revision_Then_dates_are_added_to_fields()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
             rev.Index = 0;
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
             createdWI.Fields[WiFieldReference.ChangedDate] = DateTime.Now;
 
             wiUtils.EnsureDateFields(rev, createdWI);
@@ -269,8 +269,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_fields_on_state_change_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             Assert.That(
                 () => wiUtils.EnsureFieldsOnStateChange(null, null),
                 Throws.InstanceOf<ArgumentException>());
@@ -279,19 +279,19 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_fields_on_state_change_with_subsequent_revision_Then_dates_are_added_to_fields()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
             rev.Index = 1;
 
-            WiField revState = new WiField();
+            var revState = new WiField();
             revState.ReferenceName = WiFieldReference.State;
             revState.Value = "New";
             rev.Fields.Add(revState);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
             createdWI.Fields[WiFieldReference.State] = "Done";
             createdWI.Fields[WiFieldReference.ChangedDate] = DateTime.Now;
 
@@ -307,8 +307,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_classification_fields_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             Assert.That(
                 () => wiUtils.EnsureClassificationFields(null),
                 Throws.InstanceOf<ArgumentException>());
@@ -317,15 +317,15 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_classification_fields_Then_areapath_and_iterationpath_are_added_to_fields()
         {
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             wiUtils.EnsureClassificationFields(rev);
 
-            List<WiField> filteredForAreaPath = rev.Fields.FindAll(f => f.ReferenceName == WiFieldReference.AreaPath && f.Value.ToString() == "");
-            List<WiField> filteredForIterationPath = rev.Fields.FindAll(f => f.ReferenceName == WiFieldReference.IterationPath && f.Value.ToString() == "");
+            var filteredForAreaPath = rev.Fields.FindAll(f => f.ReferenceName == WiFieldReference.AreaPath && f.Value.ToString() == "");
+            var filteredForIterationPath = rev.Fields.FindAll(f => f.ReferenceName == WiFieldReference.IterationPath && f.Value.ToString() == "");
 
             Assert.That(filteredForAreaPath.Count, Is.EqualTo(1));
             Assert.That(filteredForIterationPath.Count, Is.EqualTo(1));
@@ -334,8 +334,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_workitem_fields_initialized_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
             Assert.That(
                 () => wiUtils.EnsureWorkItemFieldsInitialized(null, null),
                 Throws.InstanceOf<ArgumentException>());
@@ -344,15 +344,15 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_workitem_fields_initialized_for_user_story_Then_title_and_description_are_added_to_fields()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
 
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
 
-            WiField revTitleField = new WiField();
+            var revTitleField = new WiField();
             revTitleField.ReferenceName = WiFieldReference.Title;
             revTitleField.Value = "My title";
 
@@ -369,15 +369,15 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_ensure_workitem_fields_initialized_for_bug_Then_title_and_description_are_added_to_fields()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("Bug");
+            var createdWI = wiUtils.CreateWorkItem("Bug");
 
-            WiRevision rev = new WiRevision();
+            var rev = new WiRevision();
             rev.Fields = new List<WiField>();
 
-            WiField revTitleField = new WiField();
+            var revTitleField = new WiField();
             revTitleField.ReferenceName = WiFieldReference.Title;
             revTitleField.Value = "My title";
 
@@ -394,8 +394,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_is_duplicate_work_item_link_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils sut = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var sut = new WitClientUtils(witClientWrapper);
 
             var result = sut.IsDuplicateWorkItemLink(null, null);
             Assert.That(result, Is.EqualTo(false));
@@ -404,12 +404,12 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_is_duplicate_work_item_link_with_no_containing_links_Then_false_is_returned()
         {
-            WorkItemRelation[] links = new WorkItemRelation[0];
-            WorkItemRelation relatedLink = new WorkItemRelation();
+            var links = new WorkItemRelation[0];
+            var relatedLink = new WorkItemRelation();
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
-            bool isDuplicate = wiUtils.IsDuplicateWorkItemLink(links, relatedLink);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
+            var isDuplicate = wiUtils.IsDuplicateWorkItemLink(links, relatedLink);
 
             Assert.That(isDuplicate, Is.EqualTo(false));
         }
@@ -417,10 +417,10 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_create_work_item_Then_work_item_is_created_and_added_to_cache()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("Task");
+            var createdWI = wiUtils.CreateWorkItem("Task");
             WorkItem retrievedWI = null;
             if (createdWI.Id.HasValue)
             {
@@ -437,8 +437,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_add_link_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
             Assert.That(
                 () => wiUtils.AddAndSaveLink(null, null),
@@ -448,13 +448,13 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_add_link_with_valid_args_Then_a_link_is_added()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
-            WorkItem linkedWI = wiUtils.CreateWorkItem("Task");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
+            var linkedWI = wiUtils.CreateWorkItem("Task");
 
-            WiLink link = new WiLink();
+            var link = new WiLink();
             link.WiType = "System.LinkTypes.Hierarchy-Forward";
             link.SourceOriginId = "100";
             link.SourceWiId = 1;
@@ -464,7 +464,7 @@ namespace Migration.Wi_Import.Tests
 
             wiUtils.AddAndSaveLink(link, createdWI);
 
-            WorkItemRelation rel = createdWI.Relations[0];
+            var rel = createdWI.Relations[0];
 
             Assert.That(rel.Rel, Is.EqualTo(link.WiType));
             Assert.That(rel.Url, Is.EqualTo(linkedWI.Url));
@@ -473,23 +473,23 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_add_link_with_valid_args_and_an_attachment_is_present_on_the_created_wi_Then_a_link_is_added()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
             var attachment = new WorkItemRelation();
             attachment.Title = "LinkTitle";
             attachment.Rel = "AttachedFile";
             attachment.Url = $"https://dev.azure.com/someorg/someattachment/{System.Guid.NewGuid()}";
-            attachment.Attributes = new Dictionary<string, object>()
+            attachment.Attributes = new Dictionary<string, object>
             {
                     { "id", _fixture.Create<string>() },
                     { "name", "filename.png" }
             };
             createdWI.Relations.Add(attachment);
-            WorkItem linkedWI = wiUtils.CreateWorkItem("Task");
+            var linkedWI = wiUtils.CreateWorkItem("Task");
 
-            WiLink link = new WiLink();
+            var link = new WiLink();
             link.WiType = "System.LinkTypes.Hierarchy-Forward";
             link.SourceOriginId = "100";
             link.SourceWiId = 1;
@@ -499,7 +499,7 @@ namespace Migration.Wi_Import.Tests
 
             wiUtils.AddAndSaveLink(link, createdWI);
 
-            WorkItemRelation rel = createdWI.Relations.Where(rl => rl.Rel != "AttachedFile").Single();
+            var rel = createdWI.Relations.Where(rl => rl.Rel != "AttachedFile").Single();
 
             Assert.That(rel.Rel, Is.EqualTo(link.WiType));
             Assert.That(rel.Url, Is.EqualTo(linkedWI.Url));
@@ -508,23 +508,23 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_add_link_with_valid_args_and_an_attachment_is_present_on_the_linked_wi_Then_a_link_is_added()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
-            WorkItem linkedWI = wiUtils.CreateWorkItem("Task");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
+            var linkedWI = wiUtils.CreateWorkItem("Task");
             var attachment = new WorkItemRelation();
             attachment.Title = "LinkTitle";
             attachment.Rel = "AttachedFile";
             attachment.Url = $"https://dev.azure.com/someorg/someattachment/{System.Guid.NewGuid()}";
-            attachment.Attributes = new Dictionary<string, object>()
+            attachment.Attributes = new Dictionary<string, object>
             {
                     { "id", _fixture.Create<string>() },
                     { "name", "filename.png" }
             };
             linkedWI.Relations.Add(attachment);
 
-            WiLink link = new WiLink();
+            var link = new WiLink();
             link.WiType = "System.LinkTypes.Hierarchy-Forward";
             link.SourceOriginId = "100";
             link.SourceWiId = 1;
@@ -534,7 +534,7 @@ namespace Migration.Wi_Import.Tests
 
             wiUtils.AddAndSaveLink(link, createdWI);
 
-            WorkItemRelation rel = createdWI.Relations[0];
+            var rel = createdWI.Relations[0];
 
             Assert.That(rel.Rel, Is.EqualTo(link.WiType));
             Assert.That(rel.Url, Is.EqualTo(linkedWI.Url));
@@ -543,8 +543,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_remove_link_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
             Assert.That(
                 () => wiUtils.RemoveAndSaveLink(null, null),
@@ -554,15 +554,15 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_remove_link_with_no_link_added_Then_false_is_returned()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
 
-            WiLink link = new WiLink();
+            var link = new WiLink();
             link.WiType = "System.LinkTypes.Hierarchy-Forward";
 
-            bool result = wiUtils.RemoveAndSaveLink(link, createdWI);
+            var result = wiUtils.RemoveAndSaveLink(link, createdWI);
 
             Assert.That(result, Is.EqualTo(false));
         }
@@ -570,13 +570,13 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_remove_link_with_link_added_Then_link_is_removed()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
-            WorkItem linkedWI = wiUtils.CreateWorkItem("Task");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
+            var linkedWI = wiUtils.CreateWorkItem("Task");
 
-            WiLink link = new WiLink();
+            var link = new WiLink();
             link.WiType = "System.LinkTypes.Hierarchy-Forward";
             link.SourceOriginId = "100";
             link.SourceWiId = 1;
@@ -586,7 +586,7 @@ namespace Migration.Wi_Import.Tests
 
             wiUtils.AddAndSaveLink(link, createdWI);
 
-            bool result = wiUtils.RemoveAndSaveLink(link, createdWI);
+            var result = wiUtils.RemoveAndSaveLink(link, createdWI);
 
             Assert.That(result, Is.EqualTo(true));
             Assert.That(createdWI.Relations, Is.Empty);
@@ -595,8 +595,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_correct_comment_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
             Assert.That(
                 () => wiUtils.CorrectComment(null, null, null, MockedIsAttachmentMigratedDelegateTrue),
@@ -606,28 +606,29 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_correct_comment_with_valid_args_Then_history_is_updated_with_correct_image_urls()
         {
-            string commentBeforeTransformation = "My comment, including file: <img src=\"my_image.png\">";
-            string commentAfterTransformation = "My comment, including file: <img src=\"https://example.com/my_image.png\">";
+            var commentBeforeTransformation = "My comment, including file: <img src=\"my_image.png\">";
+            var commentAfterTransformation = "My comment, including file: <img src=\"https://example.com/my_image.png\">";
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("Task");
+            var createdWI = wiUtils.CreateWorkItem("Task");
             createdWI.Fields[WiFieldReference.History] = commentBeforeTransformation;
-            createdWI.Relations.Add(new WorkItemRelation() {
+            createdWI.Relations.Add(new WorkItemRelation
+            {
                 Rel= "AttachedFile",
                 Url= "https://example.com/my_image.png",
-                Attributes = new Dictionary<string, object>() { { "filePath", "C:\\Temp\\MyFiles\\my_image.png" } }
+                Attributes = new Dictionary<string, object> { { "filePath", "C:\\Temp\\MyFiles\\my_image.png" } }
             });
 
-            WiAttachment att = new WiAttachment();
+            var att = new WiAttachment();
             att.Change = ReferenceChangeType.Added;
             att.FilePath = "C:\\Temp\\MyFiles\\my_image.png";
 
-            WiRevision revision = new WiRevision();
+            var revision = new WiRevision();
             revision.Attachments.Add(att);
 
-            WiItem wiItem = new WiItem();
+            var wiItem = new WiItem();
             wiItem.Revisions = new List<WiRevision>();
             wiItem.Revisions.Add(revision);
 
@@ -639,8 +640,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_correct_description_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
             Assert.That(
                 () => wiUtils.CorrectDescription(null, null, null, MockedIsAttachmentMigratedDelegateTrue),
@@ -650,29 +651,29 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_correct_description_for_user_story_Then_description_is_updated_with_correct_image_urls()
         {
-            string descriptionBeforeTransformation = "My description, including file: <img src=\"my_image.png\">";
-            string descriptionAfterTransformation = "My description, including file: <img src=\"https://example.com/my_image.png\">";
+            var descriptionBeforeTransformation = "My description, including file: <img src=\"my_image.png\">";
+            var descriptionAfterTransformation = "My description, including file: <img src=\"https://example.com/my_image.png\">";
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
             createdWI.Fields[WiFieldReference.Description] = descriptionBeforeTransformation;
-            createdWI.Relations.Add(new WorkItemRelation()
+            createdWI.Relations.Add(new WorkItemRelation
             {
                 Rel = "AttachedFile",
                 Url = "https://example.com/my_image.png",
-                Attributes = new Dictionary<string, object>() { { "filePath", "C:\\Temp\\MyFiles\\my_image.png" } }
+                Attributes = new Dictionary<string, object> { { "filePath", "C:\\Temp\\MyFiles\\my_image.png" } }
             });
 
-            WiAttachment att = new WiAttachment();
+            var att = new WiAttachment();
             att.Change = ReferenceChangeType.Added;
             att.FilePath = "C:\\Temp\\MyFiles\\my_image.png";
 
-            WiRevision revision = new WiRevision();
+            var revision = new WiRevision();
             revision.Attachments.Add(att);
 
-            WiItem wiItem = new WiItem();
+            var wiItem = new WiItem();
             wiItem.Revisions = new List<WiRevision>();
             wiItem.Revisions.Add(revision);
 
@@ -684,29 +685,29 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_correct_description_for_bug_Then_repro_steps_is_updated_with_correct_image_urls()
         {
-            string reproStepsBeforeTransformation = "My description, including file: <img src=\"my_image.png\">";
-            string reproStepsAfterTransformation = "My description, including file: <img src=\"https://example.com/my_image.png\">";
+            var reproStepsBeforeTransformation = "My description, including file: <img src=\"my_image.png\">";
+            var reproStepsAfterTransformation = "My description, including file: <img src=\"https://example.com/my_image.png\">";
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("Bug");
+            var createdWI = wiUtils.CreateWorkItem("Bug");
             createdWI.Fields[WiFieldReference.ReproSteps] = reproStepsBeforeTransformation;
-            createdWI.Relations.Add(new WorkItemRelation()
+            createdWI.Relations.Add(new WorkItemRelation
             {
                 Rel = "AttachedFile",
                 Url = "https://example.com/my_image.png",
-                Attributes = new Dictionary<string, object>() { { "filePath", "C:\\Temp\\MyFiles\\my_image.png" } }
+                Attributes = new Dictionary<string, object> { { "filePath", "C:\\Temp\\MyFiles\\my_image.png" } }
             });
 
-            WiAttachment att = new WiAttachment();
+            var att = new WiAttachment();
             att.Change = ReferenceChangeType.Added;
             att.FilePath = "C:\\Temp\\MyFiles\\my_image.png";
 
-            WiRevision revision = new WiRevision();
+            var revision = new WiRevision();
             revision.Attachments.Add(att);
 
-            WiItem wiItem = new WiItem();
+            var wiItem = new WiItem();
             wiItem.Revisions = new List<WiRevision>();
             wiItem.Revisions.Add(revision);
 
@@ -718,8 +719,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_apply_attachments_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
             Assert.That(
                 () => wiUtils.ApplyAttachments(null, null, null, MockedIsAttachmentMigratedDelegateTrue),
@@ -729,21 +730,21 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_apply_attachments_with_change_equal_to_added_Then_workitem_is_updated_with_correct_attachment()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
 
-            WiAttachment att = new WiAttachment();
+            var att = new WiAttachment();
             att.Change = ReferenceChangeType.Added;
             att.FilePath = "C:\\Temp\\MyFiles\\my_image.png";
             att.AttOriginId = "100";
             att.Comment = "My comment";
 
-            WiRevision revision = new WiRevision();
+            var revision = new WiRevision();
             revision.Attachments.Add(att);
 
-            Dictionary<string, WiAttachment> attachmentMap = new Dictionary<string, WiAttachment>();
+            var attachmentMap = new Dictionary<string, WiAttachment>();
 
             wiUtils.ApplyAttachments(revision, createdWI, attachmentMap, MockedIsAttachmentMigratedDelegateTrue);
 
@@ -755,29 +756,29 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_apply_attachments_with_change_equal_to_removed_Then_workitem_is_updated_with_removed_attachment()
         {
-            string attachmentFilePath = "C:\\Temp\\MyFiles\\my_image.png";
+            var attachmentFilePath = "C:\\Temp\\MyFiles\\my_image.png";
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
-            createdWI.Relations.Add(new WorkItemRelation()
+            var createdWI = wiUtils.CreateWorkItem("User Story");
+            createdWI.Relations.Add(new WorkItemRelation
             {
                 Rel = "AttachedFile",
                 Url = "https://example.com/my_image.png",
-                Attributes = new Dictionary<string, object>() { { "filePath", attachmentFilePath } }
+                Attributes = new Dictionary<string, object> { { "filePath", attachmentFilePath } }
             });
 
-            WiAttachment att = new WiAttachment();
+            var att = new WiAttachment();
             att.Change = ReferenceChangeType.Removed;
             att.FilePath = attachmentFilePath;
             att.AttOriginId = "100";
             att.Comment = "My comment";
 
-            WiRevision revision = new WiRevision();
+            var revision = new WiRevision();
             revision.Attachments.Add(att);
 
-            Dictionary<string, WiAttachment> attachmentMap = new Dictionary<string, WiAttachment>();
+            var attachmentMap = new Dictionary<string, WiAttachment>();
 
             wiUtils.ApplyAttachments(revision, createdWI, attachmentMap, MockedIsAttachmentMigratedDelegateTrue);
 
@@ -787,29 +788,29 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_apply_attachments_with_already_existing_attachment_Then_workitem_is_updated_with_another_attachment()
         {
-            string attachmentFilePath = "C:\\Temp\\MyFiles\\my_image.png";
+            var attachmentFilePath = "C:\\Temp\\MyFiles\\my_image.png";
 
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
-            createdWI.Relations.Add(new WorkItemRelation()
+            var createdWI = wiUtils.CreateWorkItem("User Story");
+            createdWI.Relations.Add(new WorkItemRelation
             {
                 Rel = "AttachedFile",
                 Url = "https://example.com/my_image.png",
-                Attributes = new Dictionary<string, object>() { { "filePath", attachmentFilePath } }
+                Attributes = new Dictionary<string, object> { { "filePath", attachmentFilePath } }
             });
 
-            WiAttachment att = new WiAttachment();
+            var att = new WiAttachment();
             att.Change = ReferenceChangeType.Added;
             att.FilePath = attachmentFilePath;
             att.AttOriginId = "100";
             att.Comment = "My comment";
 
-            WiRevision revision = new WiRevision();
+            var revision = new WiRevision();
             revision.Attachments.Add(att);
 
-            Dictionary<string, WiAttachment> attachmentMap = new Dictionary<string, WiAttachment>();
+            var attachmentMap = new Dictionary<string, WiAttachment>();
 
             wiUtils.ApplyAttachments(revision, createdWI, attachmentMap, MockedIsAttachmentMigratedDelegateFalse);
 
@@ -820,8 +821,8 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_save_workitem_with_empty_args_Then_an_exception_is_thrown()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
             Assert.That(
                 () => wiUtils.SaveWorkItem(null, null),
@@ -831,11 +832,11 @@ namespace Migration.Wi_Import.Tests
         [Test]
         public void When_calling_save_workitem_with_populated_workitem_Then_workitem_is_updated_in_store()
         {
-            MockedWitClientWrapper witClientWrapper = new MockedWitClientWrapper();
-            WitClientUtils wiUtils = new WitClientUtils(witClientWrapper);
+            var witClientWrapper = new MockedWitClientWrapper();
+            var wiUtils = new WitClientUtils(witClientWrapper);
 
-            WorkItem createdWI = wiUtils.CreateWorkItem("User Story");
-            WorkItem linkedWI = wiUtils.CreateWorkItem("Task");
+            var createdWI = wiUtils.CreateWorkItem("User Story");
+            var linkedWI = wiUtils.CreateWorkItem("Task");
 
             // Add fields
             createdWI.Fields[WiFieldReference.Title] = "My work item";
@@ -844,13 +845,13 @@ namespace Migration.Wi_Import.Tests
 
             // Add attachment
 
-            WiAttachment att = new WiAttachment();
+            var att = new WiAttachment();
             att.Change = ReferenceChangeType.Added;
             att.FilePath = "C:\\Temp\\MyFiles\\my_image.png";
             att.AttOriginId = "100";
             att.Comment = "My comment";
 
-            WiRevision revision = new WiRevision();
+            var revision = new WiRevision();
             revision.Attachments.Add(att);
 
             // Perform save

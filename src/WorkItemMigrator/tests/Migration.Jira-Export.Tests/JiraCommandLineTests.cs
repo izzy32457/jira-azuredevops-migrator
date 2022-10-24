@@ -19,7 +19,7 @@ namespace Migration.Jira_Export.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
@@ -36,7 +36,7 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_execute_with_args_Then_run_is_executed()
         {
-            string[] args = new string[] {
+            var args = new string[] {
                 "-u",
                 "alexander.hjelm@solidify.dev",
                 "-p",

@@ -22,15 +22,15 @@ namespace Migration.Jira_Export.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
         public void When_calling_getcustomid_Then_the_expected_result_is_returned()
         {
             //Arrange
-            string customFieldId = _fixture.Create<string>();
-            string propertyName = _fixture.Create<string>(); ;
+            var customFieldId = _fixture.Create<string>();
+            var propertyName = _fixture.Create<string>(); ;
             
             var apiResponse = JArray.Parse(
                 $"[{{ 'id': 'customfield_00001', 'name': 'Story'}}, " +
@@ -39,7 +39,7 @@ namespace Migration.Jira_Export.Tests
             var jiraServiceMock = _fixture.Create<IJiraServiceWrapper>();
             jiraServiceMock.RestClient.ExecuteRequestAsync(Method.GET, Arg.Any<string>()).Returns(apiResponse);
 
-            JiraProvider sut = new JiraProvider(jiraServiceMock);
+            var sut = new JiraProvider(jiraServiceMock);
 
             //Act
             var id = sut.GetCustomId(propertyName);
@@ -52,8 +52,8 @@ namespace Migration.Jira_Export.Tests
         public void When_calling_getcustomid_the_key_matches_Then_the_expected_result_is_returned()
         {
             //Arrange
-            string customFieldId = _fixture.Create<string>(); ;
-            string propertyName = _fixture.Create<string>(); ;
+            var customFieldId = _fixture.Create<string>(); ;
+            var propertyName = _fixture.Create<string>(); ;
 
             var apiResponse = JArray.Parse(
                 $"[{{ 'id': 'customfield_00001', 'key': 'Story'}}, " +
@@ -62,7 +62,7 @@ namespace Migration.Jira_Export.Tests
             var jiraServiceMock = _fixture.Create<IJiraServiceWrapper>();
             jiraServiceMock.RestClient.ExecuteRequestAsync(Method.GET, Arg.Any<string>()).Returns(apiResponse);
 
-            JiraProvider sut = new JiraProvider(jiraServiceMock);
+            var sut = new JiraProvider(jiraServiceMock);
 
             //Act
             var id = sut.GetCustomId(propertyName);
@@ -75,7 +75,7 @@ namespace Migration.Jira_Export.Tests
         public void When_calling_getcustomid_and_nothing_matches_Then_null_is_returned()
         {
             //Arrange
-            string propertyName = "does_not_exist";
+            var propertyName = "does_not_exist";
 
             var apiResponse = JArray.Parse(
                 $"[{{ 'id': 'customfield_00001', 'key': 'Story'}}, " +
@@ -84,7 +84,7 @@ namespace Migration.Jira_Export.Tests
             var jiraServiceMock = _fixture.Create<IJiraServiceWrapper>();
             jiraServiceMock.RestClient.ExecuteRequestAsync(Method.GET, Arg.Any<string>()).Returns(apiResponse);
 
-            JiraProvider sut = new JiraProvider(jiraServiceMock);
+            var sut = new JiraProvider(jiraServiceMock);
 
             //Act
             var id = sut.GetCustomId(propertyName);
@@ -97,8 +97,8 @@ namespace Migration.Jira_Export.Tests
         public void When_calling_getcustomid_and_multiple_fields_with_the_same_name_exist_Then_the_first_result_is_returned()
         {
             //Arrange
-            string firstId = "customfield_00001";
-            string fieldname = _fixture.Create<string>();
+            var firstId = "customfield_00001";
+            var fieldname = _fixture.Create<string>();
 
             var apiResponse = JArray.Parse(
                 $"[{{ 'id': 'customfield_00001', 'name': '{fieldname}'}}, " +
@@ -107,7 +107,7 @@ namespace Migration.Jira_Export.Tests
             var jiraServiceMock = _fixture.Create<IJiraServiceWrapper>();
             jiraServiceMock.RestClient.ExecuteRequestAsync(Method.GET, Arg.Any<string>()).Returns(apiResponse);
 
-            JiraProvider sut = new JiraProvider(jiraServiceMock);
+            var sut = new JiraProvider(jiraServiceMock);
 
             //Act
             var id = sut.GetCustomId(fieldname);
@@ -120,10 +120,10 @@ namespace Migration.Jira_Export.Tests
         public void When_calling_getcustomid_multiple_times_Then_the_api_is_called_once()
         {
             //Arrange
-            string customFieldId1 = _fixture.Create<string>(); ;
-            string customFieldId2 = _fixture.Create<string>(); ;
-            string propertyName1 = _fixture.Create<string>(); ;
-            string propertyName2 = _fixture.Create<string>(); ;
+            var customFieldId1 = _fixture.Create<string>(); ;
+            var customFieldId2 = _fixture.Create<string>(); ;
+            var propertyName1 = _fixture.Create<string>(); ;
+            var propertyName2 = _fixture.Create<string>(); ;
 
             var apiResponse = JArray.Parse(
                 $"[{{ 'id': '{customFieldId1}', 'key': '{propertyName1}'}}, " +
@@ -132,7 +132,7 @@ namespace Migration.Jira_Export.Tests
             var jiraServiceMock = _fixture.Create<IJiraServiceWrapper>();
             jiraServiceMock.RestClient.ExecuteRequestAsync(Method.GET, Arg.Any<string>()).Returns(apiResponse);
 
-            JiraProvider sut = new JiraProvider(jiraServiceMock);
+            var sut = new JiraProvider(jiraServiceMock);
 
             //Act
             var actualId1 = sut.GetCustomId(propertyName1);

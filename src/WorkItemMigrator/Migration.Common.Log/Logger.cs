@@ -77,7 +77,7 @@ namespace Migration.Common.Log
         {
             var key = ConfigurationManager.AppSettings["applicationInsightsKey"];
 
-            if (!string.IsNullOrEmpty(key) && Guid.TryParse(key, out Guid temp))
+            if (!string.IsNullOrEmpty(key) && Guid.TryParse(key, out var temp))
             {
                 TelemetryConfiguration.Active.InstrumentationKey = key;
                 _telemetryClient = new TelemetryClient();
@@ -123,7 +123,7 @@ namespace Migration.Common.Log
         public static void Log(Exception ex, string message, LogLevel logLevel = LogLevel.Error)
         {
             LogExceptionToApplicationInsights(ex);
-            Log(logLevel, $"{message + Environment.NewLine}[{ex.GetType().ToString()}] {ex.ToString()}: {Environment.NewLine + ex.StackTrace}");
+            Log(logLevel, $"{message + Environment.NewLine}[{ex.GetType()}] {ex}: {Environment.NewLine + ex.StackTrace}");
         }
 
         private static void LogInternal(LogLevel level, string message)
@@ -157,9 +157,9 @@ namespace Migration.Common.Log
 
         private static void ToFile(LogLevel level, string message)
         {
-            string levelPrefix = GetPrefixFromLogLevel(level);
-            string dateTime = DateTime.Now.ToString("HH:mm:ss");
-            string log = $"[{levelPrefix}][{dateTime}] {message}";
+            var levelPrefix = GetPrefixFromLogLevel(level);
+            var dateTime = DateTime.Now.ToString("HH:mm:ss");
+            var log = $"[{levelPrefix}][{dateTime}] {message}";
             ToFile(log);
         }
 
@@ -176,10 +176,10 @@ namespace Migration.Common.Log
                 if ((int)level >= (int)_logLevel)
                 {
                     Console.ForegroundColor = GetColorFromLogLevel(level);
-                    string levelPrefix = GetPrefixFromLogLevel(level);
-                    string dateTime = DateTime.Now.ToString("HH:mm:ss");
+                    var levelPrefix = GetPrefixFromLogLevel(level);
+                    var dateTime = DateTime.Now.ToString("HH:mm:ss");
 
-                    string log = $"[{levelPrefix}][{dateTime}] {message}";
+                    var log = $"[{levelPrefix}][{dateTime}] {message}";
                     Console.WriteLine(log);
                 }
             }
@@ -191,7 +191,7 @@ namespace Migration.Common.Log
 
         public static LogLevel GetLogLevelFromString(string level)
         {
-            LogLevel logLevel = LogLevel.Debug;
+            var logLevel = LogLevel.Debug;
             switch (level)
             {
                 case "Info": logLevel = LogLevel.Info; break;

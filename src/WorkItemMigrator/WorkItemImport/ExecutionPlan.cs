@@ -34,7 +34,7 @@ namespace WorkItemImport
             var item = _context.GetItem(revRef.OriginId);
             var rev = item.Revisions[revRef.RevIndex];
             rev.Time = revRef.Time;
-            return new ExecutionItem() { OriginId = item.OriginId, WiId = item.WiId, WiType = item.Type, Revision = rev };
+            return new ExecutionItem { OriginId = item.OriginId, WiId = item.WiId, WiType = item.Type, Revision = rev };
         }
 
         public bool TryPop(out ExecutionItem nextItem)

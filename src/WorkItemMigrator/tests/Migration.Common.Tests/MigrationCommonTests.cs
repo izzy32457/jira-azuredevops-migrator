@@ -19,7 +19,7 @@ namespace Migration.Common.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [TestCase("a@jira.com", "a@azdo.com")]
@@ -27,7 +27,7 @@ namespace Migration.Common.Tests
         public void When_generating_user_map_Then_map_is_correct(string source, string target)
         {
             string[] userMapLines = { "a@jira.com=a@azdo.com", "b@jira.com=b@azdo.com" };
-            Dictionary<string, string> generatedUserMap = UserMapper.ParseUserMappings(userMapLines);
+            var generatedUserMap = UserMapper.ParseUserMappings(userMapLines);
 
             Assert.Multiple(() =>
             {

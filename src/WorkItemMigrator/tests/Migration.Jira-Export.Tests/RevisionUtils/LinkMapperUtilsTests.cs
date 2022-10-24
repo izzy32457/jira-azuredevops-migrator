@@ -25,17 +25,17 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
         {
             var provider = _fixture.Freeze<IJiraProvider>();
 
-            JObject remoteIssue = new JObject();
+            var remoteIssue = new JObject();
             remoteIssue.Add("fields", new JObject());
             remoteIssue.Add("renderedFields", new JObject());
             remoteIssue.Add("key", issueKey);
 
             provider.DownloadIssue(default).ReturnsForAnyArgs(remoteIssue);
-            JiraSettings settings = new JiraSettings("userID", "pass", "url", "project");
+            var settings = new JiraSettings("userID", "pass", "url", "project");
             settings.SprintField = "SprintField";
             provider.GetSettings().ReturnsForAnyArgs(settings);
 
-            JiraItem item = JiraItem.CreateFromRest(issueKey, provider);
+            var item = JiraItem.CreateFromRest(issueKey, provider);
 
             var revision = new JiraRevision(item);
             revision.Fields = new Dictionary<string, object>();
@@ -48,7 +48,7 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         //public static void AddSingleLink(JiraRevision r, List<WiLink> links, string field, string type, ConfigJson config)
@@ -66,26 +66,26 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
         [Test]
         public void When_calling_add_single_link_with_valid_field_Then_a_link_is_added()
         {
-            string issueKey = "issue_key";
-            string summary = "My Summary";
-            string targetId = "Target_ID";
-            string targetWiType = "Target_Wi_Type";
-            string child = "Child";
-            string epicChild = "epic child";
+            var issueKey = "issue_key";
+            var summary = "My Summary";
+            var targetId = "Target_ID";
+            var targetWiType = "Target_Wi_Type";
+            var child = "Child";
+            var epicChild = "epic child";
 
-            JiraRevision revision = MockRevisionWithParentItem(issueKey, summary);
+            var revision = MockRevisionWithParentItem(issueKey, summary);
 
-            Link link = new Link();
+            var link = new Link();
             link.Source = child;
             link.Target = targetWiType;
 
-            ConfigJson configJson = new ConfigJson();
+            var configJson = new ConfigJson();
 
             configJson.LinkMap = new LinkMap();
             configJson.LinkMap.Links = new List<Link>();
             configJson.LinkMap.Links.Add(link);
 
-            List<WiLink> links = new List<WiLink>();
+            var links = new List<WiLink>();
 
             revision.Fields[epicChild] = targetId;
 
@@ -105,25 +105,25 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
         [Test]
         public void When_calling_add_single_link_with_null_field_Then_no_link_is_added()
         {
-            string issueKey = "issue_key";
-            string summary = "My Summary";
-            string targetWiType = "Target_Wi_Type";
-            string child = "Child";
-            string epicChild = "epic child";
+            var issueKey = "issue_key";
+            var summary = "My Summary";
+            var targetWiType = "Target_Wi_Type";
+            var child = "Child";
+            var epicChild = "epic child";
 
-            JiraRevision revision = MockRevisionWithParentItem(issueKey, summary);
+            var revision = MockRevisionWithParentItem(issueKey, summary);
 
-            Link link = new Link();
+            var link = new Link();
             link.Source = child;
             link.Target = targetWiType;
 
-            ConfigJson configJson = new ConfigJson();
+            var configJson = new ConfigJson();
 
             configJson.LinkMap = new LinkMap();
             configJson.LinkMap.Links = new List<Link>();
             configJson.LinkMap.Links.Add(link);
 
-            List<WiLink> links = new List<WiLink>();
+            var links = new List<WiLink>();
 
             revision.Fields[epicChild] = null;
 
@@ -151,26 +151,26 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
         [Test]
         public void When_calling_add_remove_single_link_with_valid_field_Then_a_link_is_added()
         {
-            string issueKey = "issue_key";
-            string summary = "My Summary";
-            string targetId = "Target_ID";
-            string targetWiType = "Target_Wi_Type";
-            string child = "Child";
-            string epicChild = "epic child";
+            var issueKey = "issue_key";
+            var summary = "My Summary";
+            var targetId = "Target_ID";
+            var targetWiType = "Target_Wi_Type";
+            var child = "Child";
+            var epicChild = "epic child";
 
-            JiraRevision revision = MockRevisionWithParentItem(issueKey, summary);
+            var revision = MockRevisionWithParentItem(issueKey, summary);
 
-            Link link = new Link();
+            var link = new Link();
             link.Source = child;
             link.Target = targetWiType;
 
-            ConfigJson configJson = new ConfigJson();
+            var configJson = new ConfigJson();
 
             configJson.LinkMap = new LinkMap();
             configJson.LinkMap.Links = new List<Link>();
             configJson.LinkMap.Links.Add(link);
 
-            List<WiLink> links = new List<WiLink>();
+            var links = new List<WiLink>();
 
             revision.Fields[epicChild] = targetId;
 
@@ -191,16 +191,16 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
         [Test]
         public void When_calling_add_remove_single_link_with_valid_field_Then_a_link_is_removed()
         {
-            string issueKey = "issue_key";
-            string summary = "My Summary";
-            string targetId = "Target_ID";
-            string targetWiType = "Target_Wi_Type";
-            string child = "Child";
-            string epicChild = "epic child";
+            var issueKey = "issue_key";
+            var summary = "My Summary";
+            var targetId = "Target_ID";
+            var targetWiType = "Target_Wi_Type";
+            var child = "Child";
+            var epicChild = "epic child";
 
-            JiraRevision revision = MockRevisionWithParentItem(issueKey, summary);
-            JiraRevision revision2 = MockRevisionWithParentItem(issueKey, summary);
-            JiraRevision revision3 = MockRevisionWithParentItem(issueKey, summary);
+            var revision = MockRevisionWithParentItem(issueKey, summary);
+            var revision2 = MockRevisionWithParentItem(issueKey, summary);
+            var revision3 = MockRevisionWithParentItem(issueKey, summary);
 
             revision.Index = 1;
             revision.Fields[epicChild] = null;
@@ -210,17 +210,17 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
             revision2.ParentItem.Revisions.Insert(0, revision);
             revision.ParentItem.Revisions.Insert(0, revision);
 
-            Link link = new Link();
+            var link = new Link();
             link.Source = child;
             link.Target = targetWiType;
 
-            ConfigJson configJson = new ConfigJson();
+            var configJson = new ConfigJson();
 
             configJson.LinkMap = new LinkMap();
             configJson.LinkMap.Links = new List<Link>();
             configJson.LinkMap.Links.Add(link);
 
-            List<WiLink> links = new List<WiLink>();
+            var links = new List<WiLink>();
 
             LinkMapperUtils.AddRemoveSingleLink(revision, links, epicChild, child, configJson);
 
@@ -253,26 +253,26 @@ namespace Migration.Jira_Export.Tests.RevisionUtils
         public void When_calling_map_epic_child_link_with_valid_field_Then_a_link_is_added()
         {
             // issueKey must be > targetId for a link to be generated
-            string issueKey = "9";
-            string targetId = "8";
-            string summary = "My Summary";
-            string targetWiType = "Target_Wi_Type";
-            string child = "Child";
-            string epicChild = "epic child";
+            var issueKey = "9";
+            var targetId = "8";
+            var summary = "My Summary";
+            var targetWiType = "Target_Wi_Type";
+            var child = "Child";
+            var epicChild = "epic child";
 
-            JiraRevision revision = MockRevisionWithParentItem(issueKey, summary);
+            var revision = MockRevisionWithParentItem(issueKey, summary);
 
-            Link link = new Link();
+            var link = new Link();
             link.Source = child;
             link.Target = targetWiType;
 
-            ConfigJson configJson = new ConfigJson();
+            var configJson = new ConfigJson();
 
             configJson.LinkMap = new LinkMap();
             configJson.LinkMap.Links = new List<Link>();
             configJson.LinkMap.Links.Add(link);
 
-            List<WiLink> links = new List<WiLink>();
+            var links = new List<WiLink>();
 
             revision.Fields[epicChild] = targetId;
 

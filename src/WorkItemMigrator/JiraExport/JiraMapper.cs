@@ -5,7 +5,6 @@ using System.Linq;
 using Common.Config;
 
 using Migration.Common;
-using Migration.Common.Config;
 using Migration.Common.Log;
 using Migration.WIContract;
 
@@ -87,10 +86,10 @@ namespace JiraExport
                         switch (item.Mapper)
                         {
                             case "MapTitle":
-                                value = r => FieldMapperUtils.MapTitle(r);
+                                value = FieldMapperUtils.MapTitle;
                                 break;
                             case "MapTitleWithoutKey":
-                                value = r => FieldMapperUtils.MapTitleWithoutKey(r);
+                                value = FieldMapperUtils.MapTitleWithoutKey;
                                 break;
                             case "MapUser":
                                 value = IfChanged<string>(item.Source, isCustomField, MapUser);
@@ -150,7 +149,7 @@ namespace JiraExport
                             else
                             {
                                 // If we haven't mapped the Type then we probably want to ignore the field
-                                if (typeFields.TryGetValue(wit, out FieldMapping<JiraRevision> fm))
+                                if (typeFields.TryGetValue(wit, out var fm))
                                 {
                                     fm.Add(item.Target, value);
                                 }
@@ -172,7 +171,7 @@ namespace JiraExport
             // Now go through the list of built up type fields (which we will eventually get to
             // and then add them to the complete dictionary per type.
             var mappingPerWiType = new Dictionary<string, FieldMapping<JiraRevision>>();
-            foreach (KeyValuePair<string, FieldMapping<JiraRevision>> item in typeFields)
+            foreach (var item in typeFields)
             {
                 mappingPerWiType.Add(item.Key, MergeMapping(commonFields, item.Value));
             }
@@ -240,7 +239,7 @@ namespace JiraExport
             {
                 var change = att.ChangeType == RevisionChangeType.Added ? ReferenceChangeType.Added : ReferenceChangeType.Removed;
 
-                var wiAtt = new WiAttachment()
+                var wiAtt = new WiAttachment
                 {
                     Change = change,
                     AttOriginId = att.Value.Id,
@@ -276,7 +275,7 @@ namespace JiraExport
                             if (include)
                             {
                                 Logger.Log(LogLevel.Debug, $"Mapped value '{value}' to field '{fieldreference}'.");
-                                fields.Add(new WiField()
+                                fields.Add(new WiField
                                 {
                                     ReferenceName = fieldreference,
                                     Value = value
@@ -298,9 +297,9 @@ namespace JiraExport
         {
             Logger.Log(LogLevel.Debug, $"Mapping revision {r.Index}.");
 
-            List<WiAttachment> attachments = MapAttachments(r);
-            List<WiField> fields = MapFields(r);
-            List<WiLink> links = MapLinks(r);
+            var attachments = MapAttachments(r);
+            var fields = MapFields(r);
+            var links = MapLinks(r);
 
             return new WiRevision()
             {
@@ -326,7 +325,7 @@ namespace JiraExport
 
         private HashSet<string> InitializeTypeMappings()
         {
-            HashSet<string> types = new HashSet<string>();
+            var types = new HashSet<string>();
             _config.TypeMap.Types.ForEach(t => types.Add(t.Target));
             return types;
         }
@@ -341,7 +340,7 @@ namespace JiraExport
 
             return (r) =>
             {
-                if (r.Fields.TryGetValue(sourceField.ToLower(), out object value))
+                if (r.Fields.TryGetValue(sourceField.ToLower(), out var value))
                 {
                     if (mapperFunc != null)
                     {

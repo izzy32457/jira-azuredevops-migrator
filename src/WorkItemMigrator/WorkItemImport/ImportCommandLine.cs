@@ -42,16 +42,16 @@ namespace WorkItemImport
             commandLineApplication.FullName = "Work item migration tool that assists with moving Jira items to Azure DevOps or TFS.";
             commandLineApplication.Name = "wi-import";
 
-            CommandOption tokenOption = commandLineApplication.Option("--token <accesstoken>", "Personal access token to use for authentication", CommandOptionType.SingleValue);
-            CommandOption urlOption = commandLineApplication.Option("--url <accounturl>", "Url for the account", CommandOptionType.SingleValue);
-            CommandOption configOption = commandLineApplication.Option("--config <configurationfilename>", "Import the work items based on the configuration file", CommandOptionType.SingleValue);
-            CommandOption forceOption = commandLineApplication.Option("--force", "Forces execution from start (instead of continuing from previous run)", CommandOptionType.NoValue);
-            CommandOption continueOnCriticalOption = commandLineApplication.Option("--continue", "Continue execution upon a critical error", CommandOptionType.SingleValue);
+            var tokenOption = commandLineApplication.Option("--token <accesstoken>", "Personal access token to use for authentication", CommandOptionType.SingleValue);
+            var urlOption = commandLineApplication.Option("--url <accounturl>", "Url for the account", CommandOptionType.SingleValue);
+            var configOption = commandLineApplication.Option("--config <configurationfilename>", "Import the work items based on the configuration file", CommandOptionType.SingleValue);
+            var forceOption = commandLineApplication.Option("--force", "Forces execution from start (instead of continuing from previous run)", CommandOptionType.NoValue);
+            var continueOnCriticalOption = commandLineApplication.Option("--continue", "Continue execution upon a critical error", CommandOptionType.SingleValue);
 
 
             commandLineApplication.OnExecute(() =>
             {
-                bool forceFresh = forceOption.HasValue();
+                var forceFresh = forceOption.HasValue();
 
                 if (configOption.HasValue())
                 {
@@ -77,8 +77,8 @@ namespace WorkItemImport
 
             try
             {
-                string configFileName = configFile.Value();
-                ConfigReaderJson configReaderJson = new ConfigReaderJson(configFileName);
+                var configFileName = configFile.Value();
+                var configReaderJson = new ConfigReaderJson(configFileName);
                 config = configReaderJson.Deserialize();
 
                 var context = MigrationContext.Init("wi-import", config, config.LogLevel, forceFresh, continueOnCritical.Value());
@@ -110,7 +110,7 @@ namespace WorkItemImport
 
                 BeginSession(configFileName, config, forceFresh, agent, itemCount, revisionCount);
 
-                while (plan.TryPop(out ExecutionPlan.ExecutionItem executionItem))
+                while (plan.TryPop(out var executionItem))
                 {
                     try
                     {
@@ -138,7 +138,7 @@ namespace WorkItemImport
                     {
                         try
                         {
-                            Logger.Log(ex, $"Failed to import '{executionItem.ToString()}'.");
+                            Logger.Log(ex, $"Failed to import '{executionItem}'.");
                         }
                         catch (AbortMigrationException)
                         {
@@ -173,7 +173,8 @@ namespace WorkItemImport
 
             Logger.StartSession("Azure DevOps Work Item Import",
                 "wi-import-started",
-                new Dictionary<string, string>() {
+                new Dictionary<string, string>
+                {
                     { "Tool version         :", toolVersion },
                     { "Start time           :", DateTime.Now.ToString() },
                     { "Telemetry            :", Logger.TelemetryStatus },
@@ -189,7 +190,8 @@ namespace WorkItemImport
                     { "Azure DevOps version :", "n/a" },
                     { "Azure DevOps type    :", hostingType }
                     },
-                new Dictionary<string, string>() {
+                new Dictionary<string, string>
+                {
                     { "item-count", itemsCount.ToString() },
                     { "revision-count", revisionCount.ToString() },
                     { "system-version", "n/a" },
@@ -216,7 +218,8 @@ namespace WorkItemImport
             Logger.Log(LogLevel.Info, $"Import complete. Imported {itemsCount} items, {revisionCount} revisions ({Logger.Errors} errors, {Logger.Warnings} warnings) in {string.Format("{0:hh\\:mm\\:ss}", sw.Elapsed)}.");
 
             Logger.EndSession("wi-import-completed",
-                new Dictionary<string, string>() {
+                new Dictionary<string, string>
+                {
                     { "item-count", itemsCount.ToString() },
                     { "revision-count", revisionCount.ToString() },
                     { "error-count", Logger.Errors.ToString() },

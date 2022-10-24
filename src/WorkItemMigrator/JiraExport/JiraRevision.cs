@@ -32,7 +32,7 @@ namespace JiraExport
         public List<RevisionAction<JiraLink>> LinkActions { get; set; }
 
         public List<RevisionAction<JiraAttachment>> AttachmentActions { get; set; }
-        public JiraItem ParentItem { get; private set; }
+        public JiraItem ParentItem { get; }
         public int Index { get; set; }
 
         public string OriginId => ParentItem.Key;
@@ -50,18 +50,17 @@ namespace JiraExport
             if (other == null)
                 return 1;
 
-            int t = this.Time.CompareTo(other.Time);
-            if (t != 0)
-                return t;
-
-            return this.ParentItem.Key.CompareTo(other.ParentItem.Key);
+            var t = Time.CompareTo(other.Time);
+            return t != 0
+                ? t
+                : string.Compare(OriginId, other.OriginId, StringComparison.Ordinal);
         }
 
         public string GetFieldValue(string fieldName)
         {
             return (string)(((IEnumerable<JiraRevision>)ParentItem.Revisions)
                 .Reverse()
-                .SkipWhile(r => r.Index > this.Index)
+                .SkipWhile(r => r.Index > Index)
                 .FirstOrDefault(r => r.Fields.ContainsKey(fieldName))
                 ?.Fields[fieldName]);
         }

@@ -1,7 +1,6 @@
 ﻿using Common.Config;
 using Migration.Common.Log;
 using Migration.WIContract;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,7 +22,7 @@ namespace JiraExport
                 throw new ArgumentNullException(nameof(type));
             }
 
-            if (r.Fields.TryGetValue(field, out object value))
+            if (r.Fields.TryGetValue(field, out var value))
             {
                 var parentKeyStr = r.OriginId.Substring(r.OriginId.LastIndexOf("-", StringComparison.InvariantCultureIgnoreCase) + 1);
                 var childKeyStr = value?.ToString().Substring((value?.ToString()).LastIndexOf("-", StringComparison.InvariantCultureIgnoreCase) + 1);
@@ -53,7 +52,7 @@ namespace JiraExport
                 throw new ArgumentNullException(nameof(type));
             }
 
-            if (r.Fields.TryGetValue(field, out object value))
+            if (r.Fields.TryGetValue(field, out var value))
             {
                 var changeType = value == null ? ReferenceChangeType.Removed : ReferenceChangeType.Added;
                 var linkType = (from t in config.LinkMap.Links where t.Source == type select t.Target).FirstOrDefault();
@@ -65,7 +64,7 @@ namespace JiraExport
                     // if previous value is not null, add removal of previous link
                     if (!string.IsNullOrWhiteSpace(prevLinkValue))
                     {
-                        var removeLink = new WiLink()
+                        var removeLink = new WiLink
                         {
                             Change = ReferenceChangeType.Removed,
                             SourceOriginId = r.ParentItem.Key,
@@ -79,9 +78,9 @@ namespace JiraExport
 
                 if (changeType == ReferenceChangeType.Added)
                 {
-                    string linkedItemKey = (string)value;
+                    var linkedItemKey = (string)value;
 
-                    var link = new WiLink()
+                    var link = new WiLink
                     {
                         Change = changeType,
                         SourceOriginId = r.ParentItem.Key,
@@ -107,7 +106,7 @@ namespace JiraExport
             }
 
 
-            if (r.Fields.TryGetValue(field, out object value))
+            if (r.Fields.TryGetValue(field, out var value))
             {
                 var changeType = value == null ? ReferenceChangeType.Removed : ReferenceChangeType.Added;
                 var linkType = (from t in config.LinkMap.Links where t.Source == type select t.Target).FirstOrDefault();
@@ -115,7 +114,7 @@ namespace JiraExport
 
                 if (changeType == ReferenceChangeType.Added)
                 {
-                    string linkedItemKey = (string)value;
+                    var linkedItemKey = (string)value;
 
                     if (string.IsNullOrEmpty(linkType))
                     {
@@ -123,7 +122,7 @@ namespace JiraExport
                         return;
                     }
 
-                    var link = new WiLink()
+                    var link = new WiLink
                     {
                         Change = changeType,
                         SourceOriginId = r.ParentItem.Key,

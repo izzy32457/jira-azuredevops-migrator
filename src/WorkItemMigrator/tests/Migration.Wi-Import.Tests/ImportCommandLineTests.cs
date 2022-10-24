@@ -19,7 +19,7 @@ namespace Migration.Wi_Import.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
@@ -37,7 +37,7 @@ namespace Migration.Wi_Import.Tests
         public void When_calling_execute_with_args_Then_run_is_executed()
         {
 
-            string[] args = new string[] {
+            var args = new string[] {
                 "--token",
                 "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
                 "--url",

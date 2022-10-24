@@ -18,13 +18,13 @@ namespace Migration.Common.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
         public void When_initializing_migration_context_Then_folder_paths_are_correct()
         {
-            ConfigJson config = new ConfigJson();
+            var config = new ConfigJson();
             config.AttachmentsFolder = "AttachmentsFolder";
             config.UserMappingFile = "UserMappingFile";
             config.Workspace = "C:\\Temp\\JiraExport\\";

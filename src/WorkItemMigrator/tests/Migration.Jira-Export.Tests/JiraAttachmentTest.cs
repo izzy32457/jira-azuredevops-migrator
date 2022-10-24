@@ -18,18 +18,18 @@ namespace Migration.Jira_Export.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
         public void When_calling_to_string_Then_the_expected_string_value_is_returned()
         {
-            JiraAttachment sut = new JiraAttachment();
+            var sut = new JiraAttachment();
 
             sut.Id = "id";
             sut.Filename = "name";
 
-            string expectedToString = $"{sut.Id}/{sut.Filename}";
+            var expectedToString = $"{sut.Id}/{sut.Filename}";
 
             Assert.That(() => sut.ToString(), Is.EqualTo(expectedToString));
         }
@@ -37,10 +37,10 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_equals_with_two_equal_jira_attachments_Then_true_is_returned()
         {
-            JiraAttachment sut1 = new JiraAttachment();
-            JiraAttachment sut2 = new JiraAttachment();
+            var sut1 = new JiraAttachment();
+            var sut2 = new JiraAttachment();
             
-            string idString = "id";
+            var idString = "id";
 
             sut1.Id = idString;
             sut2.Id = idString;
@@ -51,7 +51,7 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_equals_with_null_argumentss_Then_false_is_returned()
         {
-            JiraAttachment sut = new JiraAttachment();
+            var sut = new JiraAttachment();
             Assert.That(() => sut.Equals(null), Is.False);
         }
     }

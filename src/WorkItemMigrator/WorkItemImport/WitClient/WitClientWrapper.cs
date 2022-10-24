@@ -39,9 +39,9 @@ namespace WorkItemImport
 
         public WorkItem CreateWorkItem(string wiType)
         {
-            JsonPatchDocument patchDoc = new JsonPatchDocument
+            var patchDoc = new JsonPatchDocument
             {
-                new JsonPatchOperation()
+                new JsonPatchOperation
                 {
                     Operation = Operation.Add,
                     Path = "/fields/"+WiFieldReference.Title,
@@ -98,7 +98,7 @@ namespace WorkItemImport
 
         public AttachmentReference CreateAttachment(WiAttachment attachment)
         {
-            using (FileStream uploadStream = File.Open(attachment.FilePath, FileMode.Open, FileAccess.Read))
+            using (var uploadStream = File.Open(attachment.FilePath, FileMode.Open, FileAccess.Read))
                 return WitClient.CreateAttachmentAsync(uploadStream, attachment.FileName, null, null, null, new CancellationToken()).Result;
         }
     }

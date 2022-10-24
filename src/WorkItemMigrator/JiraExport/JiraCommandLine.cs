@@ -38,16 +38,16 @@ namespace JiraExport
             commandLineApplication.FullName = "Work item migration tool that assists with moving Jira items to Azure DevOps or TFS.";
             commandLineApplication.Name = "jira-export";
 
-            CommandOption userOption = commandLineApplication.Option("-u <username>", "Username for authentication", CommandOptionType.SingleValue);
-            CommandOption passwordOption = commandLineApplication.Option("-p <password>", "Password for authentication", CommandOptionType.SingleValue);
-            CommandOption urlOption = commandLineApplication.Option("--url <accounturl>", "Url for the account", CommandOptionType.SingleValue);
-            CommandOption configOption = commandLineApplication.Option("--config <configurationfilename>", "Export the work items based on this configuration file", CommandOptionType.SingleValue);
-            CommandOption forceOption = commandLineApplication.Option("--force", "Forces execution from start (instead of continuing from previous run)", CommandOptionType.NoValue);
-            CommandOption continueOnCriticalOption = commandLineApplication.Option("--continue", "Continue execution upon a critical error", CommandOptionType.SingleValue);
+            var userOption = commandLineApplication.Option("-u <username>", "Username for authentication", CommandOptionType.SingleValue);
+            var passwordOption = commandLineApplication.Option("-p <password>", "Password for authentication", CommandOptionType.SingleValue);
+            var urlOption = commandLineApplication.Option("--url <accounturl>", "Url for the account", CommandOptionType.SingleValue);
+            var configOption = commandLineApplication.Option("--config <configurationfilename>", "Export the work items based on this configuration file", CommandOptionType.SingleValue);
+            var forceOption = commandLineApplication.Option("--force", "Forces execution from start (instead of continuing from previous run)", CommandOptionType.NoValue);
+            var continueOnCriticalOption = commandLineApplication.Option("--continue", "Continue execution upon a critical error", CommandOptionType.SingleValue);
 
             commandLineApplication.OnExecute(() =>
             {
-                bool forceFresh = forceOption.HasValue();
+                var forceFresh = forceOption.HasValue();
 
                 if (configOption.HasValue())
                 {
@@ -71,15 +71,15 @@ namespace JiraExport
 
             try
             {
-                string configFileName = configFile.Value();
-                ConfigReaderJson configReaderJson = new ConfigReaderJson(configFileName);
+                var configFileName = configFile.Value();
+                var configReaderJson = new ConfigReaderJson(configFileName);
                 var config = configReaderJson.Deserialize();
 
                 InitSession(config, continueOnCritical.Value());
 
                 // Migration session level settings
                 // where the logs and journal will be saved, logs aid debugging, journal is for recovery of interupted process
-                string migrationWorkspace = config.Workspace;
+                var migrationWorkspace = config.Workspace;
 
                 var downloadOptions = (DownloadOptions)config.DownloadOptions;
 
@@ -93,7 +93,7 @@ namespace JiraExport
                 };
 
                 var jiraServiceWrapper = new JiraServiceWrapper(jiraSettings);
-                JiraProvider jiraProvider = new JiraProvider(jiraServiceWrapper);
+                var jiraProvider = new JiraProvider(jiraServiceWrapper);
                 jiraProvider.Initialize(jiraSettings);
 
                 itemsCount = jiraProvider.GetItemCount(jiraSettings.JQL);
@@ -113,7 +113,7 @@ namespace JiraExport
 
                 var mapper = new JiraMapper(jiraProvider, config);
                 var localProvider = new WiItemProvider(migrationWorkspace);
-                var exportedKeys = new HashSet<string>(Directory.EnumerateFiles(migrationWorkspace, "*.json").Select(f => Path.GetFileNameWithoutExtension(f)));
+                var exportedKeys = new HashSet<string>(Directory.EnumerateFiles(migrationWorkspace, "*.json").Select(Path.GetFileNameWithoutExtension));
                 var skips = forceFresh ? new HashSet<string>(Enumerable.Empty<string>()) : exportedKeys;
 
                 var issues = jiraProvider.EnumerateIssues(jiraSettings.JQL, skips, downloadOptions);
@@ -123,7 +123,7 @@ namespace JiraExport
                     if (issue == null)
                         continue;
 
-                    WiItem wiItem = mapper.Map(issue);
+                    var wiItem = mapper.Map(issue);
                     if (wiItem != null)
                     {
                         localProvider.Save(wiItem);
@@ -163,7 +163,8 @@ namespace JiraExport
 
             Logger.StartSession("Jira Export",
                 "jira-export-started",
-                new Dictionary<string, string>() {
+                new Dictionary<string, string>
+                {
                     { "Tool version :", toolVersion },
                     { "Start time   :", DateTime.Now.ToString() },
                     { "Telemetry    :", Logger.TelemetryStatus },
@@ -179,7 +180,8 @@ namespace JiraExport
                     { "Jira version :", jiraVersion.Version },
                     { "Jira type    :", jiraVersion.DeploymentType }
                     },
-                new Dictionary<string, string>() {
+                new Dictionary<string, string>
+                {
                     { "item-count", itemsCount.ToString() },
                     { "system-version", jiraVersion.Version },
                     { "hosting-type", jiraVersion.DeploymentType } });
@@ -192,7 +194,8 @@ namespace JiraExport
             Logger.Log(LogLevel.Info, $"Export complete. Exported {itemsCount} items ({Logger.Errors} errors, {Logger.Warnings} warnings) in {string.Format("{0:hh\\:mm\\:ss}", sw.Elapsed)}.");
 
             Logger.EndSession("jira-export-completed",
-                new Dictionary<string, string>() {
+                new Dictionary<string, string>
+                {
                     { "item-count", itemsCount.ToString() },
                     { "error-count", Logger.Errors.ToString() },
                     { "warning-count", Logger.Warnings.ToString() },

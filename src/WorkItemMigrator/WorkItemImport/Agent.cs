@@ -99,30 +99,30 @@ namespace WorkItemImport
                     incomplete = true;
 
                 if (incomplete)
-                    Logger.Log(LogLevel.Warning, $"'{rev.ToString()}' - not all changes were saved.");
+                    Logger.Log(LogLevel.Warning, $"'{rev}' - not all changes were saved.");
 
                 if (rev.Attachments.All(a => a.Change != ReferenceChangeType.Added) && rev.AttachmentReferences)
                 {
-                    Logger.Log(LogLevel.Debug, $"Correcting description on '{rev.ToString()}'.");
+                    Logger.Log(LogLevel.Debug, $"Correcting description on '{rev}'.");
                     _witClientUtils.CorrectDescription(wi, _context.GetItem(rev.ParentOriginId), rev, _context.Journal.IsAttachmentMigrated);
                 }
                 if (wi.Fields.ContainsKey(WiFieldReference.History) && !string.IsNullOrEmpty(wi.Fields[WiFieldReference.History].ToString()))
                 {
-                    Logger.Log(LogLevel.Debug, $"Correcting comments on '{rev.ToString()}'.");
+                    Logger.Log(LogLevel.Debug, $"Correcting comments on '{rev}'.");
                     _witClientUtils.CorrectComment(wi, _context.GetItem(rev.ParentOriginId), rev, _context.Journal.IsAttachmentMigrated);
                 }
 
                 _witClientUtils.SaveWorkItem(rev, wi);
 
-                foreach (string attOriginId in rev.Attachments.Select(wiAtt => wiAtt.AttOriginId))
+                foreach (var attOriginId in rev.Attachments.Select(wiAtt => wiAtt.AttOriginId))
                 {
-                    if (attachmentMap.TryGetValue(attOriginId, out WiAttachment tfsAtt))
+                    if (attachmentMap.TryGetValue(attOriginId, out var tfsAtt))
                         _context.Journal.MarkAttachmentAsProcessed(attOriginId, tfsAtt.AttOriginId);
                 }
 
                 if (rev.Attachments.Any(a => a.Change == ReferenceChangeType.Added) && rev.AttachmentReferences)
                 {
-                    Logger.Log(LogLevel.Debug, $"Correcting description on separate revision on '{rev.ToString()}'.");
+                    Logger.Log(LogLevel.Debug, $"Correcting description on separate revision on '{rev}'.");
 
                     try
                     {
@@ -131,7 +131,7 @@ namespace WorkItemImport
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex, $"Failed to correct description for '{wi.Id}', rev '{rev.ToString()}'.");
+                        Logger.Log(ex, $"Failed to correct description for '{wi.Id}', rev '{rev}'.");
                     }
                 }
 
@@ -188,7 +188,7 @@ namespace WorkItemImport
                 return null;
             }
 
-            (var iterationCache, int rootIteration) = agent.CreateClasificationCacheAsync(settings.Project, WebModel.TreeStructureGroup.Iterations).Result;
+            (var iterationCache, var rootIteration) = agent.CreateClasificationCacheAsync(settings.Project, WebModel.TreeStructureGroup.Iterations).Result;
             if (iterationCache == null)
             {
                 Logger.Log(LogLevel.Critical, "Could not build iteration cache.");
@@ -198,7 +198,7 @@ namespace WorkItemImport
             agent.IterationCache = iterationCache;
             agent.RootIteration = rootIteration;
 
-            (var areaCache, int rootArea) = agent.CreateClasificationCacheAsync(settings.Project, WebModel.TreeStructureGroup.Areas).Result;
+            (var areaCache, var rootArea) = agent.CreateClasificationCacheAsync(settings.Project, WebModel.TreeStructureGroup.Areas).Result;
             if (areaCache == null)
             {
                 Logger.Log(LogLevel.Critical, "Could not build area cache.");
@@ -229,9 +229,9 @@ namespace WorkItemImport
 
         private static TfsTeamProjectCollection EstablishSoapConnection(Settings settings)
         {
-            NetworkCredential netCred = new NetworkCredential(string.Empty, settings.Pat);
-            VssBasicCredential basicCred = new VssBasicCredential(netCred);
-            VssCredentials tfsCred = new VssCredentials(basicCred);
+            var netCred = new NetworkCredential(string.Empty, settings.Pat);
+            var basicCred = new VssBasicCredential(netCred);
+            var tfsCred = new VssCredentials(basicCred);
             var collection = new TfsTeamProjectCollection(new Uri(settings.Account), tfsCred);
             collection.Authenticate();
             return collection;
@@ -243,7 +243,7 @@ namespace WorkItemImport
 
         internal async Task<TeamProject> GetOrCreateProjectAsync()
         {
-            ProjectHttpClient projectClient = RestConnection.GetClient<ProjectHttpClient>();
+            var projectClient = RestConnection.GetClient<ProjectHttpClient>();
             Logger.Log(LogLevel.Info, "Retreiving project info from Azure DevOps/TFS...");
             TeamProject project = null;
 
@@ -273,29 +273,29 @@ namespace WorkItemImport
             Logger.Log(LogLevel.Info, $"Creating project '{projectName}'.");
 
             // Setup version control properties
-            Dictionary<string, string> versionControlProperties = new Dictionary<string, string>
+            var versionControlProperties = new Dictionary<string, string>
             {
                 [TeamProjectCapabilitiesConstants.VersionControlCapabilityAttributeName] = SourceControlTypes.Git.ToString()
             };
 
             // Setup process properties       
-            ProcessHttpClient processClient = RestConnection.GetClient<ProcessHttpClient>();
-            Guid processId = processClient.GetProcessesAsync().Result.Find(process => { return process.Name.Equals(processName, StringComparison.InvariantCultureIgnoreCase); }).Id;
+            var processClient = RestConnection.GetClient<ProcessHttpClient>();
+            var processId = processClient.GetProcessesAsync().Result.Find(process => { return process.Name.Equals(processName, StringComparison.InvariantCultureIgnoreCase); }).Id;
 
-            Dictionary<string, string> processProperaties = new Dictionary<string, string>
+            var processProperaties = new Dictionary<string, string>
             {
                 [TeamProjectCapabilitiesConstants.ProcessTemplateCapabilityTemplateTypeIdAttributeName] = processId.ToString()
             };
 
             // Construct capabilities dictionary
-            Dictionary<string, Dictionary<string, string>> capabilities = new Dictionary<string, Dictionary<string, string>>
+            var capabilities = new Dictionary<string, Dictionary<string, string>>
             {
                 [TeamProjectCapabilitiesConstants.VersionControlCapabilityName] = versionControlProperties,
                 [TeamProjectCapabilitiesConstants.ProcessTemplateCapabilityName] = processProperaties
             };
 
             // Construct object containing properties needed for creating the project
-            TeamProject projectCreateParameters = new TeamProject()
+            var projectCreateParameters = new TeamProject
             {
                 Name = projectName,
                 Description = projectDescription,
@@ -303,7 +303,7 @@ namespace WorkItemImport
             };
 
             // Get a client
-            ProjectHttpClient projectClient = RestConnection.GetClient<ProjectHttpClient>();
+            var projectClient = RestConnection.GetClient<ProjectHttpClient>();
 
             TeamProject project = null;
             try
@@ -312,10 +312,10 @@ namespace WorkItemImport
 
                 // Queue the project creation operation 
                 // This returns an operation object that can be used to check the status of the creation
-                OperationReference operation = await projectClient.QueueCreateProject(projectCreateParameters);
+                var operation = await projectClient.QueueCreateProject(projectCreateParameters);
 
                 // Check the operation status every 5 seconds (for up to 30 seconds)
-                Operation completedOperation = WaitForLongRunningOperation(operation.Id, 5, 30).Result;
+                var completedOperation = WaitForLongRunningOperation(operation.Id, 5, 30).Result;
 
                 // Check if the operation succeeded (the project was created) or failed
                 if (completedOperation.Status == OperationStatus.Succeeded)
@@ -343,15 +343,15 @@ namespace WorkItemImport
 
         private async Task<Operation> WaitForLongRunningOperation(Guid operationId, int interavalInSec = 5, int maxTimeInSeconds = 60, CancellationToken cancellationToken = default(CancellationToken))
         {
-            OperationsHttpClient operationsClient = RestConnection.GetClient<OperationsHttpClient>();
-            DateTime expiration = DateTime.Now.AddSeconds(maxTimeInSeconds);
-            int checkCount = 0;
+            var operationsClient = RestConnection.GetClient<OperationsHttpClient>();
+            var expiration = DateTime.Now.AddSeconds(maxTimeInSeconds);
+            var checkCount = 0;
 
             while (true)
             {
                 Logger.Log(LogLevel.Info, $" Checking status ({checkCount++})... ");
 
-                Operation operation = await operationsClient.GetOperation(operationId, cancellationToken);
+                var operation = await operationsClient.GetOperation(operationId, cancellationToken);
 
                 if (!operation.Completed)
                 {
@@ -376,7 +376,7 @@ namespace WorkItemImport
             try
             {
                 Logger.Log(LogLevel.Info, $"Building {(structureGroup == WebModel.TreeStructureGroup.Iterations ? "iteration" : "area")} cache...");
-                WebModel.WorkItemClassificationNode all = await WiClient.GetClassificationNodeAsync(project, structureGroup, null, 1000);
+                var all = await WiClient.GetClassificationNodeAsync(project, structureGroup, null, 1000);
 
                 var clasificationCache = new Dictionary<string, int>();
 
@@ -397,7 +397,7 @@ namespace WorkItemImport
 
         private void CreateClasificationCacheRec(WebModel.WorkItemClassificationNode current, Dictionary<string, int> agg, string parentPath)
         {
-            string fullName = !string.IsNullOrWhiteSpace(parentPath) ? parentPath + "/" + current.Name : current.Name;
+            var fullName = !string.IsNullOrWhiteSpace(parentPath) ? parentPath + "/" + current.Name : current.Name;
 
             agg.Add(fullName, current.Id);
             Logger.Log(LogLevel.Debug, $"{(current.StructureType == WebModel.TreeNodeStructureType.Iteration ? "Iteration" : "Area")} '{fullName}' added to cache");
@@ -427,7 +427,7 @@ namespace WorkItemImport
 
             lock (cache)
             {
-                if (cache.TryGetValue(fullName, out int id))
+                if (cache.TryGetValue(fullName, out var id))
                     return id;
 
                 WebModel.WorkItemClassificationNode node = null;
@@ -435,7 +435,7 @@ namespace WorkItemImport
                 try
                 {
                     node = WiClient.CreateOrUpdateClassificationNodeAsync(
-                        new WebModel.WorkItemClassificationNode() { Name = name, }, Settings.Project, structureGroup, parent).Result;
+                        new WebModel.WorkItemClassificationNode { Name = name, }, Settings.Project, structureGroup, parent).Result;
                 }
                 catch (Exception ex)
                 {
@@ -559,14 +559,14 @@ namespace WorkItemImport
 
         private bool ApplyAndSaveLinks(WiRevision rev, WorkItem wi)
         {
-            bool success = true;
+            var success = true;
 
             foreach (var link in rev.Links)
             {
                 try
                 {
-                    int sourceWiId = _context.Journal.GetMigratedId(link.SourceOriginId);
-                    int targetWiId = _context.Journal.GetMigratedId(link.TargetOriginId);
+                    var sourceWiId = _context.Journal.GetMigratedId(link.SourceOriginId);
+                    var targetWiId = _context.Journal.GetMigratedId(link.TargetOriginId);
 
                     link.SourceWiId = sourceWiId;
                     link.TargetWiId = targetWiId;
@@ -574,7 +574,7 @@ namespace WorkItemImport
                     if (link.TargetWiId == -1)
                     {
                         var errorLevel = Settings.IgnoreFailedLinks ? LogLevel.Warning : LogLevel.Error;
-                        Logger.Log(errorLevel, $"'{link.ToString()}' - target work item for Jira '{link.TargetOriginId}' is not yet created in Azure DevOps/TFS.");
+                        Logger.Log(errorLevel, $"'{link}' - target work item for Jira '{link.TargetOriginId}' is not yet created in Azure DevOps/TFS.");
                         success = false;
                         continue;
                     }

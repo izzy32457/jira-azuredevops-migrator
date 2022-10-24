@@ -19,13 +19,13 @@ namespace Migration.Common.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
         public void When_getvalues_Then_the_expected_result_is_returned()
         {
-            JObject jObject = JObject.Parse(@"{ name: 'My Name', emails: [ 'my@email.com', 'my2@email.com' ]}");
+            var jObject = JObject.Parse(@"{ name: 'My Name', emails: [ 'my@email.com', 'my2@email.com' ]}");
 
             var expected = jObject.SelectToken("emails", false);
             var actual = JsonExtensions.GetValues<JToken>(jObject, "emails");
@@ -36,7 +36,7 @@ namespace Migration.Common.Tests
         [Test]
         public void When_getvalues_with_non_existent_field_Then_an_exception_is_thrown()
         {
-            JObject jObject = JObject.Parse(@"{ name: 'My Name', emails: [ 'my@email.com', 'my2@email.com' ]}");
+            var jObject = JObject.Parse(@"{ name: 'My Name', emails: [ 'my@email.com', 'my2@email.com' ]}");
             Assert.Throws<NullReferenceException>(() => { JsonExtensions.GetValues<JToken>(jObject, "addresses"); });
         }
 

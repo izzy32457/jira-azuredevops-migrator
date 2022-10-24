@@ -1,14 +1,12 @@
 ﻿using Common.Config;
 using Migration.Common;
 using Migration.Common.Log;
-using Migration.WIContract;
-using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 
+// ReSharper disable once CheckNamespace
 namespace JiraExport
 {
     public static class FieldMapperUtils
@@ -27,7 +25,7 @@ namespace JiraExport
             if (r == null)
                 throw new ArgumentNullException(nameof(r));
 
-            if (r.Fields.TryGetValue("summary", out object summary))
+            if (r.Fields.TryGetValue("summary", out var summary))
                 return (true, $"[{r.ParentItem.Key}] {summary}");
             else
                 return (false, null);
@@ -37,7 +35,7 @@ namespace JiraExport
             if (r == null)
                 throw new ArgumentNullException(nameof(r));
 
-            if (r.Fields.TryGetValue("summary", out object summary))
+            if (r.Fields.TryGetValue("summary", out var summary))
                 return (true, summary);
             else
                 return (false, null);
@@ -53,15 +51,15 @@ namespace JiraExport
 
             var targetWit = (from t in config.TypeMap.Types where t.Source == r.Type select t.Target).FirstOrDefault();
 
-            var hasFieldValue = r.Fields.TryGetValue(itemSource, out object value);
+            var hasFieldValue = r.Fields.TryGetValue(itemSource, out var value);
 
             if (!hasFieldValue)
                 return (false, null);
 
             foreach (var item in config.FieldMap.Fields)
             {
-                if ((((item.Source == itemSource && item.Target == itemTarget) && (item.For.Contains(targetWit) || item.For == "All")) ||
-                      item.Source == itemSource && (!string.IsNullOrWhiteSpace(item.NotFor) && !item.NotFor.Contains(targetWit))) &&
+                if (((item.Source == itemSource && item.Target == itemTarget && (item.For.Contains(targetWit) || item.For == "All")) ||
+                      item.Source == itemSource && !string.IsNullOrWhiteSpace(item.NotFor) && !item.NotFor.Contains(targetWit)) &&
                       item.Mapping?.Values != null)
                 {
                     var mappedValue = (from s in item.Mapping.Values where s.Source == value.ToString() select s.Target).FirstOrDefault();
@@ -90,7 +88,7 @@ namespace JiraExport
 
             var targetWit = (from t in config.TypeMap.Types where t.Source == r.Type select t.Target).FirstOrDefault();
 
-            var hasFieldValue = r.Fields.TryGetValue(fieldName, out object value);
+            var hasFieldValue = r.Fields.TryGetValue(fieldName, out var value);
             if (!hasFieldValue)
                 return (false, null);
 
@@ -139,10 +137,9 @@ namespace JiraExport
                 return null;
 
             var values = field.Split(',');
-            if (!values.Any())
-                return null;
-            else
-                return string.Join(";", values);
+            return values.Any()
+                ? string.Join(";", values)
+                : null;
         }
 
         public static object MapSprint(string iterationPathsString)
@@ -178,7 +175,7 @@ namespace JiraExport
 
             htmlValue = RevisionUtility.ReplaceHtmlElements(htmlValue);
 
-            string css = ReadEmbeddedFile("JiraExport.jirastyles.css");
+            var css = ReadEmbeddedFile("JiraExport.jirastyles.css");
             if (string.IsNullOrWhiteSpace(css))
                 Logger.Log(LogLevel.Warning, $"Could not read css styles for rendered field in {revision.OriginId}.");
             else
@@ -190,11 +187,16 @@ namespace JiraExport
         private static string ReadEmbeddedFile(string resourceName)
         {
             var assembly = Assembly.GetEntryAssembly();
+            if (assembly is null)
+            {
+                return "";
+            }
 
             try
             {
-                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
-                using (StreamReader reader = new StreamReader(stream))
+                using (var stream = assembly.GetManifestResourceStream(resourceName))
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                using (var reader = new StreamReader(stream))
                 {
                     return reader.ReadToEnd();
                 }

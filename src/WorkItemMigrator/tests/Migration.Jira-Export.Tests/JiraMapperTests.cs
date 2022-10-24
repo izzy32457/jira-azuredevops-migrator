@@ -25,22 +25,22 @@ namespace Migration.Jira_Export.Tests
         public void Setup()
         {
             _fixture = new Fixture();
-            _fixture.Customize(new AutoNSubstituteCustomization() { });
+            _fixture.Customize(new AutoNSubstituteCustomization { });
         }
 
         [Test]
         public void When_calling_map_Then_the_expected_result_is_returned()
         {
-            JiraItem jiraItem = createJiraItem();
+            var jiraItem = createJiraItem();
 
-            WiItem expectedWiItem = new WiItem();
+            var expectedWiItem = new WiItem();
             expectedWiItem.Type = "User Story";
             expectedWiItem.OriginId = "issue_key";
 
-            JiraMapper sut = createJiraMapper();
+            var sut = createJiraMapper();
 
-            WiItem expected = expectedWiItem;
-            WiItem actual = sut.Map(jiraItem);
+            var expected = expectedWiItem;
+            var actual = sut.Map(jiraItem);
 
             Assert.Multiple(() =>
             {
@@ -52,8 +52,8 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_map_with_null_arguments_Then_and_exception_is_thrown()
         {
-            JiraItem jiraItem = createJiraItem();
-            JiraMapper sut = createJiraMapper();
+            var jiraItem = createJiraItem();
+            var sut = createJiraMapper();
 
             Assert.Throws<System.ArgumentNullException>(() => { sut.Map(null); });
         }
@@ -61,13 +61,13 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_maplinks_Then_the_expected_result_is_returned()
         {
-            JiraItem jiraItem = _fixture.Create<JiraItem>();
-            JiraRevision jiraRevision = new JiraRevision(jiraItem);
+            var jiraItem = _fixture.Create<JiraItem>();
+            var jiraRevision = new JiraRevision(jiraItem);
 
-            JiraMapper sut = _fixture.Create<JiraMapper>();
+            var sut = _fixture.Create<JiraMapper>();
 
-            List<WiLink> expected = new List<WiLink>();
-            List<WiLink> actual = sut.MapLinks(jiraRevision);
+            var expected = new List<WiLink>();
+            var actual = sut.MapLinks(jiraRevision);
 
             Assert.AreEqual(expected, actual);
         }
@@ -75,8 +75,8 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_maplinks_with_null_arguments_Then_and_exception_is_thrown()
         {
-            JiraItem jiraItem = createJiraItem();
-            JiraMapper sut = createJiraMapper();
+            var jiraItem = createJiraItem();
+            var sut = createJiraMapper();
 
             Assert.Throws<System.ArgumentNullException>(() => { sut.MapLinks(null); });
         }
@@ -84,13 +84,13 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_mapattachments_Then_the_expected_result_is_returned()
         {
-            JiraItem jiraItem = _fixture.Create<JiraItem>();
-            JiraRevision jiraRevision = new JiraRevision(jiraItem);
+            var jiraItem = _fixture.Create<JiraItem>();
+            var jiraRevision = new JiraRevision(jiraItem);
 
-            JiraMapper sut = _fixture.Create<JiraMapper>();
+            var sut = _fixture.Create<JiraMapper>();
 
-            List<WiAttachment> expected = new List<WiAttachment>();
-            List<WiAttachment> actual = sut.MapAttachments(jiraRevision);
+            var expected = new List<WiAttachment>();
+            var actual = sut.MapAttachments(jiraRevision);
 
             Assert.AreEqual(expected, actual);
         }
@@ -98,8 +98,8 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_mapattachments_with_null_arguments_Then_and_exception_is_thrown()
         {
-            JiraItem jiraItem = createJiraItem();
-            JiraMapper sut = createJiraMapper();
+            var jiraItem = createJiraItem();
+            var sut = createJiraMapper();
 
             Assert.Throws<System.ArgumentNullException>(() => { sut.MapAttachments (null); });
         }
@@ -107,14 +107,14 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_mapfields_Then_the_expected_result_is_returned()
         {
-            JiraItem jiraItem = createJiraItem();
-            JiraRevision jiraRevision = new JiraRevision(jiraItem);
-            List<WiField> expectedWiFieldList = new List<WiField>();
+            var jiraItem = createJiraItem();
+            var jiraRevision = new JiraRevision(jiraItem);
+            var expectedWiFieldList = new List<WiField>();
 
-            JiraMapper sut = createJiraMapper();
+            var sut = createJiraMapper();
 
-            List<WiField> expected = expectedWiFieldList;
-            List<WiField> actual = sut.MapFields(jiraRevision);
+            var expected = expectedWiFieldList;
+            var actual = sut.MapFields(jiraRevision);
 
             Assert.AreEqual(expected, actual);
         }
@@ -122,8 +122,8 @@ namespace Migration.Jira_Export.Tests
         [Test]
         public void When_calling_mapfields_with_null_arguments_Then_and_exception_is_thrown()
         {
-            JiraItem jiraItem = createJiraItem();
-            JiraMapper sut = createJiraMapper();
+            var jiraItem = createJiraItem();
+            var sut = createJiraMapper();
 
             Assert.Throws<System.ArgumentNullException>(() => { sut.MapFields(null); });
         }
@@ -135,7 +135,7 @@ namespace Migration.Jira_Export.Tests
             var fieldmap = new FieldMapping<JiraRevision>();
             expectedDictionary.Add("User Story", fieldmap);
 
-            JiraMapper sut = createJiraMapper();
+            var sut = createJiraMapper();
 
             var expected = expectedDictionary;
             var actual = sut.InitializeFieldMappings();
@@ -145,7 +145,7 @@ namespace Migration.Jira_Export.Tests
 
         private JiraSettings createJiraSettings()
         {
-            JiraSettings settings = new JiraSettings("userID", "pass", "url", "project");
+            var settings = new JiraSettings("userID", "pass", "url", "project");
             settings.EpicLinkField = "EpicLinkField";
             settings.SprintField = "SprintField";
 
@@ -157,19 +157,19 @@ namespace Migration.Jira_Export.Tests
             var provider = _fixture.Freeze<IJiraProvider>();
             provider.GetSettings().ReturnsForAnyArgs(createJiraSettings());
 
-            ConfigJson cjson = new ConfigJson();
-            TypeMap t = new TypeMap();
+            var cjson = new ConfigJson();
+            var t = new TypeMap();
             t.Types = new List<Type>();
-            FieldMap f = new FieldMap();
+            var f = new FieldMap();
             f.Fields = new List<Field>();
             cjson.TypeMap = t;
-            Type type = new Type();
+            var type = new Type();
             type.Source = "Story";
             type.Target = "User Story";
             t.Types.Add(type);
             cjson.FieldMap = f;
 
-            JiraMapper sut = new JiraMapper(provider, cjson);
+            var sut = new JiraMapper(provider, cjson);
 
             return sut;
         }
@@ -180,9 +180,9 @@ namespace Migration.Jira_Export.Tests
 
             var issueType = JObject.Parse(@"{ 'issuetype': {'name': 'Story'}}");
             var renderedFields = JObject.Parse("{ 'custom_field_name': 'SomeValue', 'description': 'RenderedDescription' }");
-            string issueKey = "issue_key";
+            var issueKey = "issue_key";
 
-            JObject remoteIssue = new JObject
+            var remoteIssue = new JObject
             {
                 { "fields", issueType },
                 { "renderedFields", renderedFields },
@@ -192,7 +192,7 @@ namespace Migration.Jira_Export.Tests
             provider.DownloadIssue(default).ReturnsForAnyArgs(remoteIssue);
             provider.GetSettings().ReturnsForAnyArgs(createJiraSettings());
 
-            JiraItem jiraItem = JiraItem.CreateFromRest(issueKey, provider);
+            var jiraItem = JiraItem.CreateFromRest(issueKey, provider);
 
             return jiraItem;
         }

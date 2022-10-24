@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-
 using Atlassian.Jira;
-using Atlassian.Jira.Remote;
 using Migration.Common;
 using Migration.Common.Log;
 
@@ -20,9 +17,9 @@ namespace JiraExport
         {
             var remoteIssue = jiraProvider.DownloadIssue(issueKey);
             if (remoteIssue == null)
-                return default(JiraItem);
+                return default;
 
-            Logger.Log(LogLevel.Debug, $"Downloaded item.");
+            Logger.Log(LogLevel.Debug, "Downloaded item.");
 
             var jiraItem = new JiraItem(jiraProvider, remoteIssue);
             var revisions = BuildRevisions(jiraItem, jiraProvider);
@@ -35,15 +32,15 @@ namespace JiraExport
 
         private static List<JiraRevision> BuildRevisions(JiraItem jiraItem, IJiraProvider jiraProvider)
         {
-            string issueKey = jiraItem.Key;
+            var issueKey = jiraItem.Key;
             var remoteIssue = jiraItem.RemoteIssue;
-            Dictionary<string, object> fields = ExtractFields(issueKey, remoteIssue, jiraProvider);
-            List<JiraAttachment> attachments = ExtractAttachments(remoteIssue.SelectTokens("$.fields.attachment[*]").Cast<JObject>()) ?? new List<JiraAttachment>();
-            List<JiraLink> links = ExtractLinks(issueKey, remoteIssue.SelectTokens("$.fields.issuelinks[*]").Cast<JObject>()) ?? new List<JiraLink>();
+            var fields = ExtractFields(issueKey, remoteIssue, jiraProvider);
+            var attachments = ExtractAttachments(remoteIssue.SelectTokens("$.fields.attachment[*]").Cast<JObject>()) ?? new List<JiraAttachment>();
+            var links = ExtractLinks(issueKey, remoteIssue.SelectTokens("$.fields.issuelinks[*]").Cast<JObject>()) ?? new List<JiraLink>();
 
             // save these field since these might be removed in the loop
-            string reporter = GetAuthor(fields);
-            var createdOn = fields.TryGetValue("created", out object crdate) ? (DateTime)crdate : default(DateTime);
+            var reporter = GetAuthor(fields);
+            var createdOn = fields.TryGetValue("created", out var createdDate) ? (DateTime)createdDate : default;
             if (createdOn == DateTime.MinValue)
                 Logger.Log(LogLevel.Debug, "created key was not found, using DateTime default value");
 
@@ -54,18 +51,18 @@ namespace JiraExport
             if (jiraProvider.GetSettings().UsingJiraCloud)
                 changelog.Reverse();
 
-            Stack<JiraRevision> revisions = new Stack<JiraRevision>();
+            var revisions = new Stack<JiraRevision>();
 
             foreach (var change in changelog)
             {
-                DateTime created = change.ExValue<DateTime>("$.created");
-                string author = GetAuthor(change);
+                var created = change.ExValue<DateTime>("$.created");
+                var author = GetAuthor(change);
 
-                List<RevisionAction<JiraLink>> linkChanges = new List<RevisionAction<JiraLink>>();
-                List<RevisionAction<JiraAttachment>> attachmentChanges = new List<RevisionAction<JiraAttachment>>();
-                Dictionary<string, object> fieldChanges = new Dictionary<string, object>(StringComparer.InvariantCultureIgnoreCase);
+                var linkChanges = new List<RevisionAction<JiraLink>>();
+                var attachmentChanges = new List<RevisionAction<JiraAttachment>>();
+                var fieldChanges = new Dictionary<string, object>(StringComparer.InvariantCultureIgnoreCase);
 
-                var items = change.SelectTokens("$.items[*]")?.Cast<JObject>()?.Select(i => new JiraChangeItem(i));
+                var items = change.SelectTokens("$.items[*]").Cast<JObject>().Select(i => new JiraChangeItem(i));
 
                 foreach (var item in items)
                 {
@@ -108,15 +105,15 @@ namespace JiraExport
             }
 
             // what is left after undoing all changes is first revision
-            var attActions = attachments.Select(a => new RevisionAction<JiraAttachment>() { ChangeType = RevisionChangeType.Added, Value = a }).ToList();
-            var linkActions = links.Select(l => new RevisionAction<JiraLink>() { ChangeType = RevisionChangeType.Added, Value = l }).ToList();
+            var attActions = attachments.Select(a => new RevisionAction<JiraAttachment> { ChangeType = RevisionChangeType.Added, Value = a }).ToList();
+            var linkActions = links.Select(l => new RevisionAction<JiraLink> { ChangeType = RevisionChangeType.Added, Value = l }).ToList();
             var fieldActions = fields;
 
             var firstRevision = new JiraRevision(jiraItem) { Time = createdOn, Author = reporter, AttachmentActions = attActions, Fields = fieldActions, LinkActions = linkActions };
             revisions.Push(firstRevision);
             var listOfRevisions = revisions.ToList();
 
-            List<JiraRevision> commentRevisions = BuildCommentRevisions(jiraItem, jiraProvider);
+            var commentRevisions = BuildCommentRevisions(jiraItem, jiraProvider);
             listOfRevisions.AddRange(commentRevisions);
             listOfRevisions.Sort();
 
@@ -132,7 +129,7 @@ namespace JiraExport
             var comments = jiraProvider.GetCommentsByItemKey(jiraItem.Key);
             return comments.Select((c, i) =>
             {
-                var rc = renderedFields.SelectToken($"$.[{i}].body");
+                var rc = renderedFields?.SelectToken($"$.[{i}].body");
                 return BuildCommentRevision(c, rc, jiraItem);
             }).ToList();
         }
@@ -146,44 +143,36 @@ namespace JiraExport
             }
             else
             {
-                if (c.AuthorUser.Username is null)
-                {
-                    author = GetAuthorIdentityOrDefault(c.AuthorUser.AccountId);
-                }
-                else
-                {
-                    author = c.AuthorUser.Username;
-                }
+                author = c.AuthorUser.Username ?? GetAuthorIdentityOrDefault(c.AuthorUser.AccountId);
             }
 
             return new JiraRevision(jiraItem)
             {
                 Author = author,
-                Time = c.CreatedDate.Value,
-                Fields = new Dictionary<string, object>() { { "comment", c.Body }, { "comment$Rendered", rc.Value<string>() } },
+                Time = c.CreatedDate ?? default,
+                Fields = new Dictionary<string, object> { { "comment", c.Body }, { "comment$Rendered", rc.Value<string>() } },
                 AttachmentActions = new List<RevisionAction<JiraAttachment>>(),
                 LinkActions = new List<RevisionAction<JiraLink>>()
             };
         }
 
-        private static void UndoAttachmentChange(RevisionAction<JiraAttachment> attachmentChange, List<JiraAttachment> attachments)
+        private static void UndoAttachmentChange(RevisionAction<JiraAttachment> attachmentChange, ICollection<JiraAttachment> attachments)
         {
             if (attachmentChange.ChangeType == RevisionChangeType.Removed)
             {
-                Logger.Log(LogLevel.Debug, $"Skipping undo for attachment '{attachmentChange.ToString()}'.");
+                Logger.Log(LogLevel.Debug, $"Skipping undo for attachment '{attachmentChange}'.");
                 return;
             }
 
-            if (attachments.Remove(attachmentChange.Value))
-                Logger.Log(LogLevel.Debug, $"Undone attachment '{attachmentChange.ToString()}'.");
-            else
-                Logger.Log(LogLevel.Debug, $"No attachment to undo for '{attachmentChange.ToString()}'.");
+            Logger.Log(LogLevel.Debug,
+                attachments.Remove(attachmentChange.Value)
+                    ? $"Undone attachment '{attachmentChange}'."
+                    : $"No attachment to undo for '{attachmentChange}'.");
         }
 
         private static RevisionAction<JiraAttachment> TransformAttachmentChange(JiraChangeItem item)
         {
-            string attKey = string.Empty;
-            string attFilename = string.Empty;
+            string attKey, attFilename;
 
             RevisionChangeType changeType;
 
@@ -205,10 +194,10 @@ namespace JiraExport
                 return null;
             }
 
-            return new RevisionAction<JiraAttachment>()
+            return new RevisionAction<JiraAttachment>
             {
                 ChangeType = changeType,
-                Value = new JiraAttachment()
+                Value = new JiraAttachment
                 {
                     Id = attKey,
                     Filename = attFilename
@@ -218,10 +207,10 @@ namespace JiraExport
 
         private static (string, string, string) TransformFieldChange(JiraChangeItem item, IJiraProvider jira)
         {
-            var objectFields = new HashSet<string>() { "assignee", "creator", "reporter" };
-            string from, to = string.Empty;
+            var objectFields = new HashSet<string> { "assignee", "creator", "reporter" };
+            string from, to;
 
-            string fieldId = item.FieldId ?? GetCustomFieldId(item.Field, jira) ?? item.Field;
+            var fieldId = item.FieldId ?? GetCustomFieldId(item.Field, jira) ?? item.Field;
 
             if (objectFields.Contains(fieldId))
             {
@@ -245,24 +234,23 @@ namespace JiraExport
 
         }
 
-        private static void UndoLinkChange(RevisionAction<JiraLink> linkChange, List<JiraLink> links)
+        private static void UndoLinkChange(RevisionAction<JiraLink> linkChange, ICollection<JiraLink> links)
         {
             if (linkChange.ChangeType == RevisionChangeType.Removed)
             {
-                Logger.Log(LogLevel.Debug, $"Skipping undo for link '{linkChange.ToString()}'.");
+                Logger.Log(LogLevel.Debug, $"Skipping undo for link '{linkChange}'.");
                 return;
             }
 
-            if (links.Remove(linkChange.Value))
-                Logger.Log(LogLevel.Debug, $"Undone link '{linkChange.ToString()}'.");
-            else
-                Logger.Log(LogLevel.Debug, $"No link to undo for '{linkChange.ToString()}'");
+            Logger.Log(LogLevel.Debug,
+                links.Remove(linkChange.Value)
+                    ? $"Undone link '{linkChange}'."
+                    : $"No link to undo for '{linkChange}'");
         }
 
         private static RevisionAction<JiraLink> TransformLinkChange(JiraChangeItem item, string sourceItemKey, IJiraProvider jira)
         {
-            string targetItemKey = string.Empty;
-            string linkTypeString = string.Empty;
+            string targetItemKey, linkTypeString;
             RevisionChangeType changeType;
 
             if (item.From == null && item.To != null)
@@ -279,7 +267,7 @@ namespace JiraExport
             }
             else
             {
-                Logger.Log(LogLevel.Error, $"Link change not handled!");
+                Logger.Log(LogLevel.Error, "Link change not handled!");
                 return null;
             }
 
@@ -291,16 +279,16 @@ namespace JiraExport
             }
             else
             {
-                if (linkType.Inward == linkType.Outward && sourceItemKey.CompareTo(targetItemKey) < 0)
+                if (linkType.Inward == linkType.Outward && string.Compare(sourceItemKey, targetItemKey, StringComparison.Ordinal) < 0)
                 {
                     Logger.Log(LogLevel.Debug, $"Link is non-directional ({linkType.Name}) and sourceItem ({sourceItemKey}) is older then target item ({targetItemKey}). Link change will be part of target item.");
                     return null;
                 }
 
-                return new RevisionAction<JiraLink>()
+                return new RevisionAction<JiraLink>
                 {
                     ChangeType = changeType,
-                    Value = new JiraLink()
+                    Value = new JiraLink
                     {
                         SourceItem = sourceItemKey,
                         TargetItem = targetItemKey,
@@ -322,7 +310,7 @@ namespace JiraExport
 
                 var type = issueLink.ExValue<string>("$.type.name");
 
-                var link = new JiraLink() { SourceItem = sourceKey, TargetItem = targetIssueKey, LinkType = type };
+                var link = new JiraLink { SourceItem = sourceKey, TargetItem = targetIssueKey, LinkType = type };
                 links.Add(link);
             }
 
@@ -331,18 +319,15 @@ namespace JiraExport
 
         private static List<JiraAttachment> ExtractAttachments(IEnumerable<JObject> attachmentObjs)
         {
-            return attachmentObjs.Select(attObj =>
+            return attachmentObjs.Select(attObj => new JiraAttachment
             {
-                return new JiraAttachment
-                {
-                    Id = attObj.ExValue<string>("$.id"),
-                    Filename = attObj.ExValue<string>("$.filename"),
-                    Url = attObj.ExValue<string>("$.content")
-                };
+                Id = attObj.ExValue<string>("$.id"),
+                Filename = attObj.ExValue<string>("$.filename"),
+                Url = attObj.ExValue<string>("$.content")
             }).ToList();
         }
 
-        private static Dictionary<string, Func<JToken, object>> _fieldExtractionMapping = null;
+        private static Dictionary<string, Func<JToken, object>> _fieldExtractionMapping;
         private static Dictionary<string, object> ExtractFields(string key, JObject remoteIssue, IJiraProvider jira)
         {
             var fields = new Dictionary<string, object>();
@@ -355,8 +340,8 @@ namespace JiraExport
 
             if (_fieldExtractionMapping == null)
             {
-                _fieldExtractionMapping = new Dictionary<string, Func<JToken, object>>()
-                    {
+                _fieldExtractionMapping = new Dictionary<string, Func<JToken, object>>
+                {
                         { "priority", extractName },
                         { "labels", t => t.Values<string>().Any() ? string.Join(" ", t.Values<string>()) : null },
                         { "assignee", extractAccountIdOrUsername },
@@ -367,14 +352,14 @@ namespace JiraExport
                         { "parent", t => t.ExValue<string>("$.key") }
                     };
             }
-
+            
             foreach (var prop in remoteFields.Properties())
             {
                 var type = prop.Value.Type;
                 var name = prop.Name.ToLower();
                 object value = null;
 
-                if (_fieldExtractionMapping.TryGetValue(name, out Func<JToken, object> mapping))
+                if (_fieldExtractionMapping.TryGetValue(name, out var mapping))
                 {
                     value = mapping(prop.Value);
                 }
@@ -392,7 +377,7 @@ namespace JiraExport
                     if ((string)value == ";" || (string)value == "")
                         value = string.Join(";", prop.Value.Select(st => st.ExValue<string>("$.value")).ToList());
                 }
-                else if (type == Newtonsoft.Json.Linq.JTokenType.Object && prop.Value["value"] != null)
+                else if (type == JTokenType.Object && prop.Value["value"] != null)
                 {
                     value = prop.Value["value"].ToString();
                 }
@@ -401,7 +386,7 @@ namespace JiraExport
                 {
                     fields[name] = value;
 
-                    if (renderedFields.TryGetValue(name, out JToken rendered))
+                    if (renderedFields.TryGetValue(name, out var rendered))
                     {
                         if (rendered.Type == JTokenType.String)
                         {
@@ -422,7 +407,7 @@ namespace JiraExport
         }
         private static string GetAuthor(Dictionary<string, object> fields)
         {
-            var reporter = fields.TryGetValue("reporter", out object rep) ? (string)rep : null;
+            var reporter = fields.TryGetValue("reporter", out var rep) ? (string)rep : null;
 
             return GetAuthorIdentityOrDefault(reporter);
         }
@@ -460,28 +445,23 @@ namespace JiraExport
 
         private readonly IJiraProvider _provider;
 
-        public string Key { get { return RemoteIssue.ExValue<string>("$.key"); } }
-        public string Type { get { return RemoteIssue.ExValue<string>("$.fields.issuetype.name")?.Trim(); } }
-        public string EpicParent
-        {
-            get
-            {
-                if (!string.IsNullOrEmpty(_provider.GetSettings().EpicLinkField))
-                    return RemoteIssue.ExValue<string>($"$.fields.{_provider.GetSettings().EpicLinkField}");
-                else
-                    return null;
-            }
-        }
-        public string Parent { get { return RemoteIssue.ExValue<string>("$.fields.parent.key"); } }
-        public List<string> SubItems { get { return GetSubTasksKey(); } }
+        public string Key => RemoteIssue.ExValue<string>("$.key");
+        public string Type => RemoteIssue.ExValue<string>("$.fields.issuetype.name")?.Trim();
 
-        public JObject RemoteIssue { get; private set; }
+        public string EpicParent => !string.IsNullOrEmpty(_provider.GetSettings().EpicLinkField)
+            ? RemoteIssue.ExValue<string>($"$.fields.{_provider.GetSettings().EpicLinkField}")
+            : null;
+        public string Parent => RemoteIssue.ExValue<string>("$.fields.parent.key");
+        public List<string> SubItems => GetSubTasksKey();
+
+        public JObject RemoteIssue { get; }
         public List<JiraRevision> Revisions { get; set; }
         private JiraItem(IJiraProvider provider, JObject remoteIssue)
         {
-            this._provider = provider;
+            _provider = provider;
             RemoteIssue = remoteIssue;
         }
+        // ReSharper disable once UnusedMember.Global
         internal string GetUserEmail(string author)
         {
             return _provider.GetUserEmail(author);

@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web;
 using Atlassian.Jira;
-using Atlassian.Jira.Remote;
 using Migration.Common;
 using Migration.Common.Log;
 
@@ -20,6 +18,7 @@ namespace JiraExport
         [Flags]
         public enum DownloadOptions
         {
+            // ReSharper disable once UnusedMember.Global
             None = 0,
             IncludeParentEpics = 1,
             IncludeParents = 2,
@@ -28,9 +27,9 @@ namespace JiraExport
 
         private readonly string JiraApiV2 = "rest/api/2";
 
-        private ILookup<string, string> JiraNameFieldCache = null;
+        private ILookup<string, string> _jiraNameFieldCache;
 
-        private ILookup<string, string> JiraKeyFieldCache = null;
+        private ILookup<string, string> _jiraKeyFieldCache;
 
         readonly Dictionary<string, string> _userEmailCache = new Dictionary<string, string>();
 
@@ -67,7 +66,7 @@ namespace JiraExport
 
             catch (Exception e)
             {
-                Logger.Log(e, "Failed to retrieve linktypes from Jira");
+                Logger.Log(e, "Failed to retrieve link types from Jira");
             }
         }
 
@@ -88,14 +87,14 @@ namespace JiraExport
 
         public bool GetCustomField(string fieldName, out CustomField customField)
         {
-            bool found = _jiraServiceWrapper.RestClient.Settings.Cache.CustomFields.TryGetValue(fieldName, out CustomField cF);
+            var found = _jiraServiceWrapper.RestClient.Settings.Cache.CustomFields.TryGetValue(fieldName, out var cF);
             customField = cF;
             return found;
         }
 
         public bool GetCustomFieldSerializer(string customType, out ICustomFieldValueSerializer serializer)
         {
-            bool found = _jiraServiceWrapper.RestClient.Settings.CustomFieldSerializers.TryGetValue(customType, out ICustomFieldValueSerializer s);
+            var found = _jiraServiceWrapper.RestClient.Settings.CustomFieldSerializers.TryGetValue(customType, out var s);
             serializer = s;
             return found;
         }
@@ -181,20 +180,21 @@ namespace JiraExport
                 throw new ArgumentNullException(nameof(path));
 
             var dir = Path.GetDirectoryName(path);
+            // ReSharper disable once AssignNullToNotNullAttribute
             Directory.CreateDirectory(dir);
         }
 
         public IEnumerable<JiraItem> EnumerateIssues(string jql, HashSet<string> skipList, DownloadOptions downloadOptions)
         {
             var currentStart = 0;
-            IEnumerable<string> remoteIssueBatch = null;
+            IList<string> remoteIssueBatch = null;
             var index = 0;
 
             Logger.Log(LogLevel.Debug, "Enumerate remote issues");
 
             do
             {
-                JToken response = null;
+                JToken response;
                 try
                 {
                     response = _jiraServiceWrapper.RestClient.ExecuteRequestAsync(Method.GET, $"{JiraApiV2}/search?jql={jql}&startAt={currentStart}&maxResults={Settings.BatchSize}&fields=key").Result;
@@ -206,18 +206,19 @@ namespace JiraExport
                 }
                 if (response != null)
                 {
-                    remoteIssueBatch = response?.SelectTokens("$.issues[*]").OfType<JObject>()
-                                            .Select(i => i.SelectToken("$.key").Value<string>());
+                    remoteIssueBatch = response.SelectTokens("$.issues[*]").OfType<JObject>()
+                                            .Select(i => i.SelectToken("$.key")?.Value<string>())
+                                            .ToList();
 
-                    if (remoteIssueBatch == null)
+                    if (!remoteIssueBatch.Any())
                     {
-                        Logger.Log(LogLevel.Warning, $"No issuse were found using jql: {jql}");
+                        Logger.Log(LogLevel.Warning, $"No issues were found using jql: {jql}");
                         break;
                     }
 
                     currentStart += Settings.BatchSize;
 
-                    int totalItems = (int)response.SelectToken("$.total");
+                    var totalItems = (int)response.SelectToken("$.total");
 
                     foreach (var issueKey in remoteIssueBatch)
                     {
@@ -353,6 +354,7 @@ namespace JiraExport
             return attChanges;
         }
 
+        // ReSharper disable once UnusedMember.Global
         public int GetNumberOfComments(string key)
         {
             return _jiraServiceWrapper.Issues.GetCommentsAsync(key).Result.Count();
@@ -360,7 +362,7 @@ namespace JiraExport
 
         public string GetUserEmail(string usernameOrAccountId)
         {
-            if (_userEmailCache.TryGetValue(usernameOrAccountId, out string email))
+            if (_userEmailCache.TryGetValue(usernameOrAccountId, out var email))
             {
                 return email;
             }
@@ -391,26 +393,25 @@ namespace JiraExport
         }
 
         public string GetCustomId(string propertyName)
-        {   
-            var customId = string.Empty;
+        {
             JArray response = null;
 
-            if (JiraNameFieldCache == null)
+            if (_jiraNameFieldCache == null)
             {
                 response = (JArray)_jiraServiceWrapper.RestClient.ExecuteRequestAsync(Method.GET, $"{JiraApiV2}/field").Result;
-                JiraNameFieldCache = CreateFieldCacheLookup(response, "name", "id");
+                _jiraNameFieldCache = CreateFieldCacheLookup(response, "name", "id");
             }
 
-            customId = GetItemFromFieldCache(propertyName, JiraNameFieldCache);
+            var customId = GetItemFromFieldCache(propertyName, _jiraNameFieldCache);
 
             if (string.IsNullOrEmpty(customId))
             {
-                if (JiraKeyFieldCache == null)
+                if (_jiraKeyFieldCache == null)
                 {
                     response = response ?? (JArray)_jiraServiceWrapper.RestClient.ExecuteRequestAsync(Method.GET, $"{JiraApiV2}/field").Result;
-                    JiraKeyFieldCache = CreateFieldCacheLookup(response, "key", "id");
+                    _jiraKeyFieldCache = CreateFieldCacheLookup(response, "key", "id");
                 }
-                customId = GetItemFromFieldCache(propertyName, JiraKeyFieldCache);
+                customId = GetItemFromFieldCache(propertyName, _jiraKeyFieldCache);
             }
 
             return customId;

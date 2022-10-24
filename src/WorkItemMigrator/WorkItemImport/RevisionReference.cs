@@ -10,7 +10,7 @@ namespace WorkItemImport
 
         public int CompareTo(RevisionReference other)
         {
-            int result = Time.CompareTo(other.Time);
+            var result = Time.CompareTo(other.Time);
             if (result != 0) return result;
 
             result = OriginId.CompareTo(other.OriginId);
@@ -68,7 +68,7 @@ namespace WorkItemImport
         {
             unchecked
             {
-                int hash = 17;
+                var hash = 17;
                 hash = hash * 23 + OriginId.GetHashCode();
                 hash = hash * 23 + RevIndex.GetHashCode();
                 return hash;

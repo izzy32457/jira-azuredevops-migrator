@@ -59,7 +59,7 @@ namespace JiraExport
             _webClient.CancelAsync();
 
             var completionSource = new TaskCompletionSource<object>();
-            string encodedUserNameAndPassword = Convert.ToBase64String(Encoding.UTF8.GetBytes(_jira.Settings.UserID + ":" + _jira.Settings.Pass));
+            var encodedUserNameAndPassword = Convert.ToBase64String(Encoding.UTF8.GetBytes(_jira.Settings.UserID + ":" + _jira.Settings.Pass));
 
             _webClient.Headers.Remove(HttpRequestHeader.Authorization);
             _webClient.Headers.Add(HttpRequestHeader.Authorization, "Basic " + encodedUserNameAndPassword);

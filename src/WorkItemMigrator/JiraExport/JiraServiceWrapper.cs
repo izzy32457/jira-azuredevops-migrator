@@ -1,11 +1,8 @@
 ﻿using Atlassian.Jira;
 using Atlassian.Jira.Remote;
-using JiraExport;
 using Migration.Common.Log;
 using RestSharp;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace JiraExport
 {

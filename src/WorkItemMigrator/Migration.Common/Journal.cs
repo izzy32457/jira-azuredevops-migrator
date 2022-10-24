@@ -30,7 +30,7 @@ namespace Migration.Common
             if (File.Exists(journal.ItemsPath))
             {
                 var revLines = File.ReadAllLines(journal.ItemsPath);
-                foreach (string rev in revLines)
+                foreach (var rev in revLines)
                 {
                     var props = rev.Split(';');
                     journal.ProcessedRevisions[props[0]] = (Convert.ToInt32(props[1]), Convert.ToInt32(props[2]));
@@ -40,7 +40,7 @@ namespace Migration.Common
             if (File.Exists(journal.AttachmentsPath))
             {
                 var attLines = File.ReadAllLines(journal.AttachmentsPath);
-                foreach (string att in attLines)
+                foreach (var att in attLines)
                 {
                     var props = att.Split(';');
                     journal.ProcessedAttachments[props[0]] = props[1];
@@ -89,17 +89,17 @@ namespace Migration.Common
 
         public bool IsItemMigrated(string originId, int rev)
         {
-            if (!ProcessedRevisions.TryGetValue(originId, out (int, int) migrationResult))
+            if (!ProcessedRevisions.TryGetValue(originId, out var migrationResult))
                 return false;
-            (_, int migratedRev) = migrationResult;
+            (_, var migratedRev) = migrationResult;
             return rev <= migratedRev;
         }
 
         public int GetMigratedId(string originId)
         {
-            if (!ProcessedRevisions.TryGetValue(originId, out (int, int) migrationResult))
+            if (!ProcessedRevisions.TryGetValue(originId, out var migrationResult))
                 return -1;
-            (int wiId, _) = migrationResult;
+            (var wiId, _) = migrationResult;
 
             return wiId;
         }
