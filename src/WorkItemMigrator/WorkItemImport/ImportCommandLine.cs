@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-
+using System.Threading;
 using Common.Config;
 
 using Microsoft.Extensions.CommandLineUtils;
+using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Migration.Common;
 using Migration.Common.Config;
 using Migration.Common.Log;
@@ -114,10 +115,21 @@ namespace WorkItemImport
                     {
                         if (!forceFresh && context.Journal.IsItemMigrated(executionItem.OriginId, executionItem.Revision.Index))
                             continue;
+                        
+                        var isFirstRun = true;
+                        WorkItem wi;
+                        do
+                        {
+                            if (!isFirstRun)
+                            {
+                                Thread.Sleep(TimeSpan.FromSeconds(1));
+                            }
 
-                        var wi = executionItem.WiId > 0
-                            ? agent.GetWorkItem(executionItem.WiId)
-                            : agent.CreateWorkItem(executionItem.WiType);
+                            wi = executionItem.WiId > 0
+                                ? agent.GetWorkItem(executionItem.WiId)
+                                : agent.CreateWorkItem(executionItem.WiType);
+                            isFirstRun = false;
+                        } while (wi is null);
 
                         Logger.Log(LogLevel.Info, $"Processing {importedItems + 1}/{revisionCount} - wi '{(wi.Id > 0 ? wi.Id.ToString() : "Initial revision")}', jira '{executionItem.OriginId}, rev {executionItem.Revision.Index}'.");
 
