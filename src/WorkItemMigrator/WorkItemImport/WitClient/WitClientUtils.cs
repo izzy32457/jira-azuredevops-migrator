@@ -277,7 +277,7 @@ namespace WorkItemImport
             // System.Title
             if (rev.Fields.HasAnyByRefName(WiFieldReference.Title))
             {
-                var title = rev.Fields.GetFieldValueOrDefault<string>(WiFieldReference.Title);
+                var title = GetValidWorkItemTitle(rev.Fields.GetFieldValueOrDefault<string>(WiFieldReference.Title));
                 wi.Fields[WiFieldReference.Title] = title;
             }
 
@@ -285,6 +285,22 @@ namespace WorkItemImport
             var descriptionFieldRef = wi.Fields[WiFieldReference.WorkItemType].ToString() == "Bug" ? WiFieldReference.ReproSteps : WiFieldReference.Description;
             if (!wi.Fields.ContainsKey(descriptionFieldRef))
                     wi.Fields[descriptionFieldRef] = "";
+        }
+
+        public string GetValidWorkItemTitle(string title)
+        {
+            if (title.Length > 255)
+            {
+                var firstPeriod = title.IndexOf('.');
+                if (firstPeriod == -1 || firstPeriod > 255)
+                {
+                    firstPeriod = 255;
+                }
+
+                title = title.Substring(0, firstPeriod);
+            }
+
+            return title;
         }
 
         public bool ApplyAttachments(WiRevision rev, WorkItem wi, Dictionary<string, WiAttachment> attachmentMap, IsAttachmentMigratedDelegate<string, string, bool> isAttachmentMigratedDelegate)
