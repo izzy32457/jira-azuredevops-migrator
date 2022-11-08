@@ -536,6 +536,9 @@ namespace WorkItemImport
                             break;
                         case var s when s.Equals(WiFieldReference.ChangedDate, StringComparison.InvariantCultureIgnoreCase):
                             break;
+                        case var s when s.Equals(WiFieldReference.Title, StringComparison.InvariantCultureIgnoreCase):
+                            wi.Fields[fieldRef] = _witClientUtils.GetValidWorkItemTitle((string)fieldValue);
+                            break;
                         default:
                             if (fieldValue != null)
                             {
