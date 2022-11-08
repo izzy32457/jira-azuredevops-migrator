@@ -20,10 +20,9 @@ namespace WorkItemImport
         private ProjectHttpClient ProjectClient { get; }
         private VssConnection Connection { get; }
         private TeamProjectReference TeamProject { get; }
-        private HashSet<int> WorkItemsAdded { get; }
-        private readonly string DefaultCategoryReferenceName = "Microsoft.RequirementCategory";
-        private WorkItemTypeCategory DefaultWorkItemTypeCategory { get; }
-        private WorkItemTypeReference DefaultWorkItemType { get; }
+        private const string DefaultCategoryReferenceName = "Microsoft.RequirementCategory";
+        // ReSharper disable once NotAccessedField.Local
+        private readonly WorkItemTypeCategory _defaultWorkItemTypeCategory;
 
         public WitClientWrapper(string collectionUri, string project, string personalAccessToken)
         {
@@ -32,9 +31,7 @@ namespace WorkItemImport
             WitClient = Connection.GetClient<WorkItemTrackingHttpClient>();
             ProjectClient = Connection.GetClient<ProjectHttpClient>();
             TeamProject = ProjectClient.GetProject(project).Result;
-            WorkItemsAdded = new HashSet<int>();
-            DefaultWorkItemTypeCategory = WitClient.GetWorkItemTypeCategoryAsync(TeamProject.Id, DefaultCategoryReferenceName).Result;
-            DefaultWorkItemType = DefaultWorkItemTypeCategory.DefaultWorkItemType;
+            _defaultWorkItemTypeCategory = WitClient.GetWorkItemTypeCategoryAsync(TeamProject.Id, DefaultCategoryReferenceName).Result;
         }
 
         public WorkItem CreateWorkItem(string wiType)
@@ -71,7 +68,7 @@ namespace WorkItemImport
             try
             {
                 wiOut = WitClient.GetWorkItemAsync(wiId, expand: WorkItemExpand.All).Result;
-            } catch (System.AggregateException)
+            } catch (AggregateException)
             {
                 // Work item was not found, return null
                 return null;
@@ -83,7 +80,15 @@ namespace WorkItemImport
 
         public WorkItem UpdateWorkItem(JsonPatchDocument patchDocument, int workItemId)
         {
-            return WitClient.UpdateWorkItemAsync(document:patchDocument, id:workItemId, bypassRules:true, expand: WorkItemExpand.All).Result;
+            try
+            {
+                return WitClient.UpdateWorkItemAsync(document: patchDocument, id: workItemId, bypassRules: true, expand: WorkItemExpand.All).Result;
+            }
+            catch (Exception e)
+            {
+                Logger.Log(e, e.InnerException?.Message ?? e.Message, LogLevel.Warning);
+                return GetWorkItem(workItemId);
+            }
         }
 
         public TeamProject GetProject(string projectId)
