@@ -115,7 +115,8 @@ namespace WorkItemImport
                     {
                         if (!forceFresh && context.Journal.IsItemMigrated(executionItem.OriginId, executionItem.Revision.Index))
                             continue;
-                        
+
+                        var maxRetries = 3;
                         var isFirstRun = true;
                         WorkItem wi;
                         do
@@ -129,7 +130,8 @@ namespace WorkItemImport
                                 ? agent.GetWorkItem(executionItem.WiId)
                                 : agent.CreateWorkItem(executionItem.WiType);
                             isFirstRun = false;
-                        } while (wi is null);
+                            maxRetries -= 1;
+                        } while (wi is null && maxRetries > 0);
 
                         Logger.Log(LogLevel.Info, $"Processing {importedItems + 1}/{revisionCount} - wi '{(wi.Id > 0 ? wi.Id.ToString() : "Initial revision")}', jira '{executionItem.OriginId}, rev {executionItem.Revision.Index}'.");
 
