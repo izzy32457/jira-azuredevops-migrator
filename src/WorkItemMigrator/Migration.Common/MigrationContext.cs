@@ -10,9 +10,10 @@ namespace Migration.Common
     public class MigrationContext
     {
         public static MigrationContext Instance { get; private set; }
-        public string AttachmentsPath { get; private set; }
-        public string UserMappingPath { get; private set; }
-        public Dictionary<string, string> UserMapping { get; private set; }
+        public string AttachmentsPath { get; }
+        public string SprintsPath { get; }
+        public string UserMappingPath { get; }
+        public Dictionary<string, string> UserMapping { get; }
         public string App { get; internal set; }
         public string MigrationWorkspace { get; internal set; }
         public LogLevel LogLevel { get; internal set; }
@@ -26,6 +27,7 @@ namespace Migration.Common
             MigrationWorkspace = config.Workspace;
             UserMappingPath = config.UserMappingFile != null ? Path.Combine(MigrationWorkspace, config.UserMappingFile) : string.Empty;
             AttachmentsPath = Path.Combine(MigrationWorkspace, config.AttachmentsFolder);
+            SprintsPath = Path.Combine(MigrationWorkspace, config.SprintsFolder);
             UserMapping = UserMapper.ParseUserMappings(UserMappingPath);
             LogLevel = Logger.GetLogLevelFromString(logLevel);
             ForceFresh = forceFresh;
@@ -38,7 +40,7 @@ namespace Migration.Common
             Logger.Init(app, config.Workspace, logLevel, continueOnCritical);
 
             Instance.Journal = Journal.Init(Instance);
-            Instance.Provider = new WiItemProvider(Instance.MigrationWorkspace);
+            Instance.Provider = new WiItemProvider(Instance.MigrationWorkspace, Instance.SprintsPath);
 
             if (!Directory.Exists(Instance.AttachmentsPath))
                 Directory.CreateDirectory(Instance.AttachmentsPath);
@@ -48,7 +50,7 @@ namespace Migration.Common
 
         public WiItem GetItem(string originId)
         {
-            var item = this.Provider.Load(originId);
+            var item = Provider.Load(originId);
             item.WiId = Journal.GetMigratedId(originId);
             foreach (var link in item.Revisions.SelectMany(r => r.Links))
             {
@@ -63,7 +65,7 @@ namespace Migration.Common
         {
             var result = new List<WiItem>();
 
-            foreach (var item in this.Provider.EnumerateAllItems())
+            foreach (var item in Provider.EnumerateAllItems())
             {
                 item.WiId = Journal.GetMigratedId(item.OriginId);
                 result.Add(item);
@@ -71,5 +73,8 @@ namespace Migration.Common
 
             return result;
         }
+
+        public WiIteration GetIteration(string iterationName)
+            => Provider.LoadIteration(iterationName);
     }
 }

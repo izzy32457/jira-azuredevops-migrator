@@ -39,6 +39,8 @@ namespace JiraExport
 
         public IEnumerable<IssueLinkType> LinkTypes { get; private set; }
 
+        public IEnumerable<JiraSprint> Sprints { get; private set; }
+
         public JiraProvider(IJiraServiceWrapper jiraServiceWrapper)
         {
             _jiraServiceWrapper = jiraServiceWrapper;
@@ -63,10 +65,19 @@ namespace JiraExport
             {
                 LinkTypes = _jiraServiceWrapper.Links.GetLinkTypesAsync().Result;
             }
-
             catch (Exception e)
             {
                 Logger.Log(e, "Failed to retrieve link types from Jira");
+            }
+
+            Logger.Log(LogLevel.Info, "Retrieving Jira sprints...");
+            try
+            {
+                Sprints = _jiraServiceWrapper.GetSprints(Settings.BoardID).ToList();
+            }
+            catch (Exception e)
+            {
+                Logger.Log(e, "Failed to retrieve sprints from Jira");
             }
         }
 
@@ -103,7 +114,7 @@ namespace JiraExport
         {
             var issue = JiraItem.CreateFromRest(issueKey, this);
             if (issue == null)
-                return default(JiraItem);
+                return default;
 
             skipList.Add(issue.Key);
             return issue;
@@ -439,5 +450,8 @@ namespace JiraExport
             }
             return customId;
         }
+
+        public IEnumerable<JiraSprint> EnumerateSprints(HashSet<string> skipList)
+            => Sprints.Where(s => !skipList.Contains(s.Name));
     }
 }

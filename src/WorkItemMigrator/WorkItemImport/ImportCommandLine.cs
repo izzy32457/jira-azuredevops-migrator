@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 
 using Common.Config;
 
 using Microsoft.Extensions.CommandLineUtils;
-using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
-
 using Migration.Common;
 using Migration.Common.Config;
 using Migration.Common.Log;
@@ -16,8 +15,8 @@ namespace WorkItemImport
 {
     public class ImportCommandLine
     {
-        private CommandLineApplication commandLineApplication;
-        private string[] args;
+        private CommandLineApplication _commandLineApplication;
+        private string[] _args;
 
         public ImportCommandLine(params string[] args)
         {
@@ -26,30 +25,30 @@ namespace WorkItemImport
 
         public void Run()
         {
-            commandLineApplication.Execute(args);
+            _commandLineApplication.Execute(_args);
         }
 
         private void InitCommandLine(params string[] args)
         {
-            commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: true);
-            this.args = args;
+            _commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: true);
+            this._args = args;
             ConfigureCommandLineParserWithOptions();
         }
 
         private void ConfigureCommandLineParserWithOptions()
         {
-            commandLineApplication.HelpOption("-? | -h | --help");
-            commandLineApplication.FullName = "Work item migration tool that assists with moving Jira items to Azure DevOps or TFS.";
-            commandLineApplication.Name = "wi-import";
+            _commandLineApplication.HelpOption("-? | -h | --help");
+            _commandLineApplication.FullName = "Work item migration tool that assists with moving Jira items to Azure DevOps or TFS.";
+            _commandLineApplication.Name = "wi-import";
 
-            var tokenOption = commandLineApplication.Option("--token <accesstoken>", "Personal access token to use for authentication", CommandOptionType.SingleValue);
-            var urlOption = commandLineApplication.Option("--url <accounturl>", "Url for the account", CommandOptionType.SingleValue);
-            var configOption = commandLineApplication.Option("--config <configurationfilename>", "Import the work items based on the configuration file", CommandOptionType.SingleValue);
-            var forceOption = commandLineApplication.Option("--force", "Forces execution from start (instead of continuing from previous run)", CommandOptionType.NoValue);
-            var continueOnCriticalOption = commandLineApplication.Option("--continue", "Continue execution upon a critical error", CommandOptionType.SingleValue);
+            var tokenOption = _commandLineApplication.Option("--token <accesstoken>", "Personal access token to use for authentication", CommandOptionType.SingleValue);
+            var urlOption = _commandLineApplication.Option("--url <accounturl>", "Url for the account", CommandOptionType.SingleValue);
+            var configOption = _commandLineApplication.Option("--config <configurationfilename>", "Import the work items based on the configuration file", CommandOptionType.SingleValue);
+            var forceOption = _commandLineApplication.Option("--force", "Forces execution from start (instead of continuing from previous run)", CommandOptionType.NoValue);
+            var continueOnCriticalOption = _commandLineApplication.Option("--continue", "Continue execution upon a critical error", CommandOptionType.SingleValue);
 
 
-            commandLineApplication.OnExecute(() =>
+            _commandLineApplication.OnExecute(() =>
             {
                 var forceFresh = forceOption.HasValue();
 
@@ -59,7 +58,7 @@ namespace WorkItemImport
                 }
                 else
                 {
-                    commandLineApplication.ShowHelp();
+                    _commandLineApplication.ShowHelp();
                 }
 
                 return 0;
@@ -68,7 +67,6 @@ namespace WorkItemImport
 
         private void ExecuteMigration(CommandOption token, CommandOption url, CommandOption configFile, bool forceFresh, CommandOption continueOnCritical)
         {
-            ConfigJson config = null;
             var itemCount = 0;
             var revisionCount = 0;
             var importedItems = 0;
@@ -79,7 +77,7 @@ namespace WorkItemImport
             {
                 var configFileName = configFile.Value();
                 var configReaderJson = new ConfigReaderJson(configFileName);
-                config = configReaderJson.Deserialize();
+                var config = configReaderJson.Deserialize();
 
                 var context = MigrationContext.Init("wi-import", config, config.LogLevel, forceFresh, continueOnCritical.Value());
 
@@ -105,8 +103,8 @@ namespace WorkItemImport
                 var executionBuilder = new ExecutionPlanBuilder(context);
                 var plan = executionBuilder.BuildExecutionPlan();
 
-                itemCount = plan.ReferenceQueue.AsEnumerable().Select(x => x.OriginId).Distinct().Count();
-                revisionCount = plan.ReferenceQueue.Count;
+                itemCount = plan.ReferenceQueue.AsEnumerable()?.Select(x => x.OriginId).Distinct().Count() ?? 0;
+                revisionCount = plan.ReferenceQueue?.Count ?? 0;
 
                 BeginSession(configFileName, config, forceFresh, agent, itemCount, revisionCount);
 
@@ -117,12 +115,9 @@ namespace WorkItemImport
                         if (!forceFresh && context.Journal.IsItemMigrated(executionItem.OriginId, executionItem.Revision.Index))
                             continue;
 
-                        WorkItem wi = null;
-                        
-                        if (executionItem.WiId > 0)
-                            wi = agent.GetWorkItem(executionItem.WiId);
-                        else
-                            wi = agent.CreateWorkItem(executionItem.WiType);
+                        var wi = executionItem.WiId > 0
+                            ? agent.GetWorkItem(executionItem.WiId)
+                            : agent.CreateWorkItem(executionItem.WiType);
 
                         Logger.Log(LogLevel.Info, $"Processing {importedItems + 1}/{revisionCount} - wi '{(wi.Id > 0 ? wi.Id.ToString() : "Initial revision")}', jira '{executionItem.OriginId}, rev {executionItem.Revision.Index}'.");
 
@@ -153,7 +148,7 @@ namespace WorkItemImport
             }
             catch (Exception e)
             {
-                Logger.Log(e, $"Unexpected migration error.");
+                Logger.Log(e, "Unexpected migration error.");
             }
             finally
             {
@@ -165,8 +160,8 @@ namespace WorkItemImport
         {
             var toolVersion = VersionInfo.GetVersionInfo();
             var osVersion = System.Runtime.InteropServices.RuntimeInformation.OSDescription.Trim();
-            var machine = System.Environment.MachineName;
-            var user = $"{System.Environment.UserDomainName}\\{System.Environment.UserName}";
+            var machine = Environment.MachineName;
+            var user = $"{Environment.UserDomainName}\\{Environment.UserName}";
             var hostingType = GetHostingType(agent);
 
             Logger.Log(LogLevel.Info, $"Import started. Importing {itemsCount} items with {revisionCount} revisions.");
@@ -176,7 +171,7 @@ namespace WorkItemImport
                 new Dictionary<string, string>
                 {
                     { "Tool version         :", toolVersion },
-                    { "Start time           :", DateTime.Now.ToString() },
+                    { "Start time           :", DateTime.Now.ToString(CultureInfo.InvariantCulture) },
                     { "Telemetry            :", Logger.TelemetryStatus },
                     { "Session id           :", Logger.SessionId },
                     { "Tool user            :", user },
@@ -215,6 +210,7 @@ namespace WorkItemImport
         {
             sw.Stop();
 
+            // ReSharper disable once UseStringInterpolation - this causes issues here for some reason
             Logger.Log(LogLevel.Info, $"Import complete. Imported {itemsCount} items, {revisionCount} revisions ({Logger.Errors} errors, {Logger.Warnings} warnings) in {string.Format("{0:hh\\:mm\\:ss}", sw.Elapsed)}.");
 
             Logger.EndSession("wi-import-completed",
@@ -224,6 +220,7 @@ namespace WorkItemImport
                     { "revision-count", revisionCount.ToString() },
                     { "error-count", Logger.Errors.ToString() },
                     { "warning-count", Logger.Warnings.ToString() },
+                    // ReSharper disable once UseStringInterpolation - this causes issues here for some reason
                     { "elapsed-time", string.Format("{0:hh\\:mm\\:ss}", sw.Elapsed) } });
         }
     }

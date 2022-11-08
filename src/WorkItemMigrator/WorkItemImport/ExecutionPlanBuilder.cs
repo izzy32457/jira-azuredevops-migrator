@@ -29,7 +29,7 @@ namespace WorkItemImport
 
         private IEnumerable<RevisionReference> BuildExecutionPlanFromDir()
         {
-            Logger.Log(LogLevel.Info, $"Building execution plan...");
+            Logger.Log(LogLevel.Info, "Building execution plan...");
             var actionPlan = new List<RevisionReference>();
             foreach (var wi in _context.EnumerateAllItems())
             {

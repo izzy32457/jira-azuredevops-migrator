@@ -124,6 +124,7 @@
     <Compile Include="JiraProvider.cs" />
     <Compile Include="JiraRevision.cs" />
     <Compile Include="JiraSettings.cs" />
+    <Compile Include="JiraSprint.cs" />
     <Compile Include="RevisionUtils\FieldMapperUtils.cs" />
     <Compile Include="RevisionUtils\LinkMapperUtils.cs" />
     <Compile Include="Program.cs" />

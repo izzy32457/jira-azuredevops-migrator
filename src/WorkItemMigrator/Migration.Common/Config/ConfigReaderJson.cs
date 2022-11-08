@@ -11,25 +11,25 @@ namespace Migration.Common.Config
 {
     public class ConfigReaderJson : IConfigReader
     {
-        private readonly string FilePath;
-        private string JsonText;
+        private readonly string _filePath;
+        private string _jsonText;
 
         public ConfigReaderJson(string filePath)
         {
-            FilePath = filePath;
+            _filePath = filePath;
         }
 
         public ConfigJson Deserialize()
         {
-            LoadFromFile(FilePath);
-            return DeserializeText(JsonText);
+            LoadFromFile(_filePath);
+            return DeserializeText(_jsonText);
         }
 
         public void LoadFromFile(string filePath)
         {
             try
             {
-                JsonText = GetJsonFromFile(filePath);
+                _jsonText = GetJsonFromFile(filePath);
             }
             catch (FileNotFoundException)
             {
@@ -60,7 +60,7 @@ namespace Migration.Common.Config
 
         public ConfigJson DeserializeText(string input)
         {
-            ConfigJson result = null;
+            ConfigJson result;
             try
             {
                 result = JsonConvert.DeserializeObject<ConfigJson>(input);

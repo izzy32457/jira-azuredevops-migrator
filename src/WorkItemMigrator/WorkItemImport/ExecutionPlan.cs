@@ -21,12 +21,12 @@ namespace WorkItemImport
 
         private readonly MigrationContext _context;
 
-        public Queue<RevisionReference> ReferenceQueue { get; private set; }
+        public Queue<RevisionReference> ReferenceQueue { get; }
 
         public ExecutionPlan(IEnumerable<RevisionReference> orderedRevisionReferences, MigrationContext context)
         {
             ReferenceQueue = new Queue<RevisionReference>(orderedRevisionReferences);
-            this._context = context;
+            _context = context;
         }
 
         private ExecutionItem TransformToExecutionItem(RevisionReference revRef)

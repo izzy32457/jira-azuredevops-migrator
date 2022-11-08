@@ -52,11 +52,11 @@ namespace Migration.Common
 
         #endregion
 
-        public Dictionary<string, (int, int)> ProcessedRevisions { get; private set; } = new Dictionary<string, (int, int)>();
+        public Dictionary<string, (int, int)> ProcessedRevisions { get; } = new Dictionary<string, (int, int)>();
 
-        public Dictionary<string, string> ProcessedAttachments { get; private set; } = new Dictionary<string, string>();
-        public string ItemsPath { get; private set; }
-        public string AttachmentsPath { get; private set; }
+        public Dictionary<string, string> ProcessedAttachments { get; } = new Dictionary<string, string>();
+        public string ItemsPath { get; }
+        public string AttachmentsPath { get; }
 
         public Journal(MigrationContext context)
         {
@@ -91,7 +91,7 @@ namespace Migration.Common
         {
             if (!ProcessedRevisions.TryGetValue(originId, out var migrationResult))
                 return false;
-            (_, var migratedRev) = migrationResult;
+            var (_, migratedRev) = migrationResult;
             return rev <= migratedRev;
         }
 
@@ -99,7 +99,7 @@ namespace Migration.Common
         {
             if (!ProcessedRevisions.TryGetValue(originId, out var migrationResult))
                 return -1;
-            (var wiId, _) = migrationResult;
+            var (wiId, _) = migrationResult;
 
             return wiId;
         }

@@ -15,6 +15,9 @@ namespace Common.Config
         [JsonProperty(PropertyName = "query", Required = Required.Always)]
         public string Query { get; set; }
 
+        [JsonProperty(PropertyName = "source-board-id", Required = Required.Always)]
+        public string SourceBoardId { get; set; }
+
         [JsonProperty(PropertyName = "workspace", Required = Required.Always)]
         public string Workspace { get; set; }
 
@@ -35,6 +38,9 @@ namespace Common.Config
 
         [JsonProperty(PropertyName = "attachment-folder", Required = Required.Always)]
         public string AttachmentsFolder { get; set; }
+
+        [JsonProperty(PropertyName = "sprints-folder")]
+        public string SprintsFolder { get; set; } = "Sprints";
 
         [JsonProperty(PropertyName = "user-mapping-file", Required = Required.AllowNull)]
         public string UserMappingFile { get; set; }

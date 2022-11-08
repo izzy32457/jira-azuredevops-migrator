@@ -335,3 +335,6 @@ About
 
 # Visual Code
 **/.ionide
+
+# Local NuGet package cache
+**/_packages/

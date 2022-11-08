@@ -26,14 +26,11 @@ namespace WorkItemImport
     public class Agent
     {
         private readonly MigrationContext _context;
-        public Settings Settings { get; private set; }
+        public Settings Settings { get; }
 
-        public TfsTeamProjectCollection Collection
-        {
-            get; private set;
-        }
+        public TfsTeamProjectCollection Collection { get; }
 
-        public VsWebApi.VssConnection RestConnection { get; private set; }
+        public VsWebApi.VssConnection RestConnection { get; }
         public Dictionary<string, int> IterationCache { get; private set; } = new Dictionary<string, int>();
         public int RootIteration { get; private set; }
         public Dictionary<string, int> AreaCache { get; private set; } = new Dictionary<string, int>();
@@ -42,15 +39,7 @@ namespace WorkItemImport
         private WitClientUtils _witClientUtils;
         private WebApi.WorkItemTrackingHttpClient _wiClient;
         public WebApi.WorkItemTrackingHttpClient WiClient
-        {
-            get
-            {
-                if (_wiClient == null)
-                    _wiClient = RestConnection.GetClient<WebApi.WorkItemTrackingHttpClient>();
-
-                return _wiClient;
-            }
-        }
+            => _wiClient ?? (_wiClient = RestConnection.GetClient<WebApi.WorkItemTrackingHttpClient>());
 
         private Agent(MigrationContext context, Settings settings, VsWebApi.VssConnection restConn, TfsTeamProjectCollection soapConnection)
         {
@@ -89,10 +78,10 @@ namespace WorkItemImport
                 if (rev.Attachments.Any() && !_witClientUtils.ApplyAttachments(rev, wi, attachmentMap, _context.Journal.IsAttachmentMigrated))
                     incomplete = true;
 
-                if (rev.Fields.Any() && !UpdateWIFields(rev.Fields, wi))
+                if (rev.Fields.Any() && !UpdateWiFields(rev.Fields, wi))
                     incomplete = true;
 
-                if (rev.Fields.Any() && !UpdateWIHistoryField(rev.Fields, wi))
+                if (rev.Fields.Any() && !UpdateWiHistoryField(rev.Fields, wi))
                     incomplete = true;
 
                 if (rev.Links.Any() && !ApplyAndSaveLinks(rev, wi))
@@ -143,7 +132,7 @@ namespace WorkItemImport
                     throw new MissingFieldException($"Work Item had no ID: {wi.Url}");
                 }
 
-                Logger.Log(LogLevel.Debug, $"Imported revision.");
+                Logger.Log(LogLevel.Debug, "Imported revision.");
 
                 return true;
             }
@@ -188,7 +177,7 @@ namespace WorkItemImport
                 return null;
             }
 
-            (var iterationCache, var rootIteration) = agent.CreateClasificationCacheAsync(settings.Project, WebModel.TreeStructureGroup.Iterations).Result;
+            var (iterationCache, rootIteration) = agent.CreateClassificationCacheAsync(settings.Project, TreeStructureGroup.Iterations).Result;
             if (iterationCache == null)
             {
                 Logger.Log(LogLevel.Critical, "Could not build iteration cache.");
@@ -198,7 +187,7 @@ namespace WorkItemImport
             agent.IterationCache = iterationCache;
             agent.RootIteration = rootIteration;
 
-            (var areaCache, var rootArea) = agent.CreateClasificationCacheAsync(settings.Project, WebModel.TreeStructureGroup.Areas).Result;
+            var (areaCache, rootArea) = agent.CreateClassificationCacheAsync(settings.Project, TreeStructureGroup.Areas).Result;
             if (areaCache == null)
             {
                 Logger.Log(LogLevel.Critical, "Could not build area cache.");
@@ -222,7 +211,7 @@ namespace WorkItemImport
             }
             catch (Exception ex)
             {
-                Logger.Log(ex, $"Cannot establish connection to Azure DevOps/TFS.", LogLevel.Critical);
+                Logger.Log(ex, "Cannot establish connection to Azure DevOps/TFS.", LogLevel.Critical);
                 return null;
             }
         }
@@ -244,7 +233,7 @@ namespace WorkItemImport
         internal async Task<TeamProject> GetOrCreateProjectAsync()
         {
             var projectClient = RestConnection.GetClient<ProjectHttpClient>();
-            Logger.Log(LogLevel.Info, "Retreiving project info from Azure DevOps/TFS...");
+            Logger.Log(LogLevel.Info, "Retrieving project info from Azure DevOps/TFS...");
             TeamProject project = null;
 
             try
@@ -256,10 +245,9 @@ namespace WorkItemImport
                 Logger.Log(ex, $"Failed to get Azure DevOps/TFS project '{Settings.Project}'.");
             }
 
-            if (project == null)
-                project = await CreateProject(Settings.Project, $"{Settings.ProcessTemplate} project for Jira migration", Settings.ProcessTemplate);
-
-            return project;
+            // ReSharper disable once RedundantAssignment
+            return project ?? (project = await CreateProject(Settings.Project,
+                $"{Settings.ProcessTemplate} project for Jira migration", Settings.ProcessTemplate));
         }
 
         internal async Task<TeamProject> CreateProject(string projectName, string projectDescription = "", string processName = "Scrum")
@@ -280,9 +268,9 @@ namespace WorkItemImport
 
             // Setup process properties       
             var processClient = RestConnection.GetClient<ProcessHttpClient>();
-            var processId = processClient.GetProcessesAsync().Result.Find(process => { return process.Name.Equals(processName, StringComparison.InvariantCultureIgnoreCase); }).Id;
+            var processId = processClient.GetProcessesAsync().Result.Find(process => process.Name.Equals(processName, StringComparison.InvariantCultureIgnoreCase)).Id;
 
-            var processProperaties = new Dictionary<string, string>
+            var processProperties = new Dictionary<string, string>
             {
                 [TeamProjectCapabilitiesConstants.ProcessTemplateCapabilityTemplateTypeIdAttributeName] = processId.ToString()
             };
@@ -291,7 +279,7 @@ namespace WorkItemImport
             var capabilities = new Dictionary<string, Dictionary<string, string>>
             {
                 [TeamProjectCapabilitiesConstants.VersionControlCapabilityName] = versionControlProperties,
-                [TeamProjectCapabilitiesConstants.ProcessTemplateCapabilityName] = processProperaties
+                [TeamProjectCapabilitiesConstants.ProcessTemplateCapabilityName] = processProperties
             };
 
             // Construct object containing properties needed for creating the project
@@ -341,7 +329,7 @@ namespace WorkItemImport
             return project;
         }
 
-        private async Task<Operation> WaitForLongRunningOperation(Guid operationId, int interavalInSec = 5, int maxTimeInSeconds = 60, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task<Operation> WaitForLongRunningOperation(Guid operationId, int intervalInSec = 5, int maxTimeInSeconds = 60, CancellationToken cancellationToken = default)
         {
             var operationsClient = RestConnection.GetClient<OperationsHttpClient>();
             var expiration = DateTime.Now.AddSeconds(maxTimeInSeconds);
@@ -351,13 +339,13 @@ namespace WorkItemImport
             {
                 Logger.Log(LogLevel.Info, $" Checking status ({checkCount++})... ");
 
-                var operation = await operationsClient.GetOperation(operationId, cancellationToken);
+                var operation = await operationsClient.GetOperation(operationId, cancellationToken: cancellationToken);
 
                 if (!operation.Completed)
                 {
-                    Logger.Log(LogLevel.Info, $"   Pausing {interavalInSec} seconds...");
+                    Logger.Log(LogLevel.Info, $"   Pausing {intervalInSec} seconds...");
 
-                    await Task.Delay(interavalInSec * 1000);
+                    await Task.Delay(intervalInSec * 1000, cancellationToken);
 
                     if (DateTime.Now > expiration)
                     {
@@ -371,44 +359,44 @@ namespace WorkItemImport
             }
         }
 
-        private async Task<(Dictionary<string, int>, int)> CreateClasificationCacheAsync(string project, WebModel.TreeStructureGroup structureGroup)
+        private async Task<(Dictionary<string, int>, int)> CreateClassificationCacheAsync(string project, TreeStructureGroup structureGroup)
         {
             try
             {
-                Logger.Log(LogLevel.Info, $"Building {(structureGroup == WebModel.TreeStructureGroup.Iterations ? "iteration" : "area")} cache...");
+                Logger.Log(LogLevel.Info, $"Building {(structureGroup == TreeStructureGroup.Iterations ? "iteration" : "area")} cache...");
                 var all = await WiClient.GetClassificationNodeAsync(project, structureGroup, null, 1000);
 
-                var clasificationCache = new Dictionary<string, int>();
+                var classificationCache = new Dictionary<string, int>();
 
                 if (all.Children != null && all.Children.Any())
                 {
                     foreach (var iteration in all.Children)
-                        CreateClasificationCacheRec(iteration, clasificationCache, "");
+                        CreateClassificationCacheRec(iteration, classificationCache, "");
                 }
 
-                return (clasificationCache, all.Id);
+                return (classificationCache, all.Id);
             }
             catch (Exception ex)
             {
-                Logger.Log(ex, $"Error while building {(structureGroup == WebModel.TreeStructureGroup.Iterations ? "iteration" : "area")} cache.");
+                Logger.Log(ex, $"Error while building {(structureGroup == TreeStructureGroup.Iterations ? "iteration" : "area")} cache.");
                 return (null, -1);
             }
         }
 
-        private void CreateClasificationCacheRec(WebModel.WorkItemClassificationNode current, Dictionary<string, int> agg, string parentPath)
+        private void CreateClassificationCacheRec(WorkItemClassificationNode current, Dictionary<string, int> agg, string parentPath)
         {
             var fullName = !string.IsNullOrWhiteSpace(parentPath) ? parentPath + "/" + current.Name : current.Name;
 
             agg.Add(fullName, current.Id);
-            Logger.Log(LogLevel.Debug, $"{(current.StructureType == WebModel.TreeNodeStructureType.Iteration ? "Iteration" : "Area")} '{fullName}' added to cache");
+            Logger.Log(LogLevel.Debug, $"{(current.StructureType == TreeNodeStructureType.Iteration ? "Iteration" : "Area")} '{fullName}' added to cache");
             if (current.Children != null)
             {
                 foreach (var node in current.Children)
-                    CreateClasificationCacheRec(node, agg, fullName);
+                    CreateClassificationCacheRec(node, agg, fullName);
             }
         }
 
-        public int? EnsureClasification(string fullName, WebModel.TreeStructureGroup structureGroup = WebModel.TreeStructureGroup.Iterations)
+        public int? EnsureClassification(string fullName, TreeStructureGroup structureGroup = TreeStructureGroup.Iterations)
         {
             if (string.IsNullOrWhiteSpace(fullName))
             {
@@ -421,30 +409,39 @@ namespace WorkItemImport
             var parent = string.Join("/", path.Take(path.Length - 1));
 
             if (!string.IsNullOrEmpty(parent))
-                EnsureClasification(parent, structureGroup);
+                EnsureClassification(parent, structureGroup);
 
-            var cache = structureGroup == WebModel.TreeStructureGroup.Iterations ? IterationCache : AreaCache;
+            var cache = structureGroup == TreeStructureGroup.Iterations ? IterationCache : AreaCache;
 
             lock (cache)
             {
                 if (cache.TryGetValue(fullName, out var id))
                     return id;
 
-                WebModel.WorkItemClassificationNode node = null;
+                WorkItemClassificationNode node = null;
 
                 try
                 {
                     node = WiClient.CreateOrUpdateClassificationNodeAsync(
-                        new WebModel.WorkItemClassificationNode { Name = name, }, Settings.Project, structureGroup, parent).Result;
+                        new WorkItemClassificationNode
+                        {
+                            Name = name,
+                            StructureType = TreeNodeStructureType.Iteration,
+                            Attributes = GetIterationAttributes(fullName)
+                        },
+                        Settings.Project,
+                        structureGroup,
+                        parent)
+                        .Result;
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(ex, $"Error while adding {(structureGroup == WebModel.TreeStructureGroup.Iterations ? "iteration" : "area")} '{fullName}' to Azure DevOps/TFS.", LogLevel.Critical);
+                    Logger.Log(ex, $"Error while adding {(structureGroup == TreeStructureGroup.Iterations ? "iteration" : "area")} '{fullName}' to Azure DevOps/TFS.", LogLevel.Critical);
                 }
 
                 if (node != null)
                 {
-                    Logger.Log(LogLevel.Debug, $"{(structureGroup == WebModel.TreeStructureGroup.Iterations ? "Iteration" : "Area")} '{fullName}' added to Azure DevOps/TFS.");
+                    Logger.Log(LogLevel.Debug, $"{(structureGroup == TreeStructureGroup.Iterations ? "Iteration" : "Area")} '{fullName}' added to Azure DevOps/TFS.");
                     cache.Add(fullName, node.Id);
                     return node.Id;
                 }
@@ -456,7 +453,7 @@ namespace WorkItemImport
 
         #region Import Revision
 
-        private bool UpdateWIHistoryField(IEnumerable<WiField> fields, WorkItem wi)
+        private static bool UpdateWiHistoryField(IEnumerable<WiField> fields, WorkItem wi)
         {
             if(fields.FirstOrDefault( i => i.ReferenceName == WiFieldReference.History ) == null )
             {
@@ -465,7 +462,7 @@ namespace WorkItemImport
             return true;
         }
 
-        private bool UpdateWIFields(IEnumerable<WiField> fields, WorkItem wi)
+        private bool UpdateWiFields(IEnumerable<WiField> fields, WorkItem wi)
         {
             var success = true;
 
@@ -493,7 +490,7 @@ namespace WorkItemImport
 
                             if (!string.IsNullOrWhiteSpace(iterationPath))
                             {
-                                EnsureClasification(iterationPath, WebModel.TreeStructureGroup.Iterations);
+                                EnsureClassification(iterationPath);
                                 wi.Fields[WiFieldReference.IterationPath] = $@"{Settings.Project}\{iterationPath}".Replace("/", @"\");
                             }
                             else
@@ -517,7 +514,7 @@ namespace WorkItemImport
 
                             if (!string.IsNullOrWhiteSpace(areaPath))
                             {
-                                EnsureClasification(areaPath, WebModel.TreeStructureGroup.Areas);
+                                EnsureClassification(areaPath, TreeStructureGroup.Areas);
                                 wi.Fields[WiFieldReference.AreaPath] = $@"{Settings.Project}\{areaPath}".Replace("/", @"\");
                             }
                             else
@@ -549,7 +546,7 @@ namespace WorkItemImport
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(ex, $"Failed to update fields.");
+                    Logger.Log(ex, "Failed to update fields.");
                     success = false;
                 }
             }
@@ -601,6 +598,36 @@ namespace WorkItemImport
                 wi.Fields[WiFieldReference.History] = $"Added link(s): { string.Join(";", rev.Links.Where(l => l.Change == ReferenceChangeType.Added).Select(l => l.ToString()))}";
 
             return success;
+        }
+
+        #endregion
+
+        #region Import Iteration
+
+        private Dictionary<string, object> GetIterationAttributes(string fullName)
+        {
+            var attributes = new Dictionary<string, object>();
+
+            try
+            {
+                var iteration = _context.GetIteration(fullName);
+
+                if (iteration.StartDate.HasValue)
+                {
+                    attributes.Add("startDate", iteration.StartDate.Value);
+                }
+
+                if (iteration.EndDate.HasValue)
+                {
+                    attributes.Add("finishDate", iteration.EndDate.Value);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(e, $"No exported configuration found for iteration: {fullName}", LogLevel.Debug);
+            }
+
+            return attributes;
         }
 
         #endregion

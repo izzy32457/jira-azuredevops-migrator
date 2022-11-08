@@ -1,5 +1,6 @@
 ﻿using Atlassian.Jira;
 using Atlassian.Jira.Remote;
+using System.Collections.Generic;
 
 namespace JiraExport
 {
@@ -9,6 +10,8 @@ namespace JiraExport
         IIssueService Issues { get; }
         IIssueLinkService Links { get; }
         IJiraRestClient RestClient { get; }
-        IJiraUserService Users { get; }        
+        IJiraUserService Users { get; }
+
+        IEnumerable<JiraSprint> GetSprints(string boardId);
     }
 }

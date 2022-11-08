@@ -55,7 +55,7 @@ namespace Migration.Jira_Export.Tests
             var jiraItem = createJiraItem();
             var sut = createJiraMapper();
 
-            Assert.Throws<System.ArgumentNullException>(() => { sut.Map(null); });
+            Assert.Throws<System.ArgumentNullException>(() => { sut.Map((JiraItem)null); });
         }
 
         [Test]

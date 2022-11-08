@@ -50,6 +50,8 @@ namespace JiraExport
                 throw new ArgumentNullException(nameof(config));
 
             var targetWit = (from t in config.TypeMap.Types where t.Source == r.Type select t.Target).FirstOrDefault();
+            if (targetWit is null)
+                return (false, null);
 
             var hasFieldValue = r.Fields.TryGetValue(itemSource, out var value);
 
@@ -87,6 +89,8 @@ namespace JiraExport
             var fieldName = sourceField + "$Rendered";
 
             var targetWit = (from t in config.TypeMap.Types where t.Source == r.Type select t.Target).FirstOrDefault();
+            if (targetWit is null)
+                return (false, null);
 
             var hasFieldValue = r.Fields.TryGetValue(fieldName, out var value);
             if (!hasFieldValue)
@@ -217,7 +221,7 @@ namespace JiraExport
             return sourceField;
         }
 
-        private static string EnsureValidIterationPathCharacters(string path)
+        internal static string EnsureValidIterationPathCharacters(string path)
         {
             // remove invalid characters according to microsoft documentation
             // https://learn.microsoft.com/en-us/azure/devops/organizations/settings/naming-restrictions?view=azure-devops
@@ -239,7 +243,11 @@ namespace JiraExport
 
             cleanPath = Path.GetInvalidPathChars().Aggregate(cleanPath, (current, invalidPathChar) => current.Replace(invalidPathChar, '_'));
 
-            return Path.GetInvalidFileNameChars().Aggregate(cleanPath, (current, invalidPathChar) => current.Replace(invalidPathChar, '_'));
+            cleanPath = Path.GetInvalidFileNameChars().Aggregate(cleanPath, (current, invalidPathChar) => current.Replace(invalidPathChar, '_'));
+
+            return cleanPath.Length > 255
+                ? cleanPath.Substring(0, 254)
+                : cleanPath;
         }
     }
 

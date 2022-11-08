@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using Common.Config;
 
 using Migration.Common;
@@ -60,6 +59,19 @@ namespace JiraExport
                 }
             }
             return wiItem;
+        }
+
+        internal WiIteration Map(JiraSprint sprint)
+        {
+            if (sprint == null)
+                throw new ArgumentNullException(nameof(sprint));
+
+            return new WiIteration
+            {
+                Name = FieldMapperUtils.EnsureValidIterationPathCharacters(sprint.Name),
+                StartDate = sprint.StartDate ?? sprint.ActivatedDate,
+                EndDate = sprint.EndDate ?? sprint.CompletedDate
+            };
         }
 
         internal Dictionary<string, FieldMapping<JiraRevision>> InitializeFieldMappings()
