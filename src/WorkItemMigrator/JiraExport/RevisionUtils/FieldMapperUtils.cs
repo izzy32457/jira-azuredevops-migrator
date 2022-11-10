@@ -27,11 +27,11 @@ namespace JiraExport
             if (r == null)
                 throw new ArgumentNullException(nameof(r));
 
-            if (r.Fields.TryGetValue("summary", out var summary))
-                return (true, $"[{r.ParentItem.Key}] {summary}");
-            else
-                return (false, null);
+            return r.Fields.TryGetValue("summary", out var summary)
+                ? (true, $"[{r.ParentItem.Key}] {summary}")
+                : (false, null);
         }
+
         public static (bool, object) MapTitleWithoutKey(JiraRevision r)
         {
             if (r == null)
@@ -116,9 +116,7 @@ namespace JiraExport
 
             return (true, value);
         }
-
-
-
+        
         public static object MapTags(string labels)
         {
             if (labels == null)
