@@ -1,7 +1,9 @@
 ﻿using Common.Config;
+using JiraExport.RevisionUtils;
 using Migration.Common;
 using Migration.Common.Log;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -157,6 +159,42 @@ namespace JiraExport
             var iterationPath = iterationPaths.Last();
 
             return iterationPath;
+        }
+
+        private static readonly Dictionary<string, decimal> CalculatedLexoRanks = new Dictionary<string, decimal>();
+        private static readonly Dictionary<decimal, string> CalculatedRanks = new Dictionary<decimal, string>();
+
+        public static object MapLexoRank(string lexoRank)
+        {
+            if (string.IsNullOrEmpty(lexoRank))
+                return decimal.MaxValue;
+
+            if (CalculatedLexoRanks.ContainsKey(lexoRank))
+            {
+                Logger.Log(LogLevel.Warning, "Duplicate rank detected. You may need to re-balance the JIRA LexoRank. see: https://confluence.atlassian.com/adminjiraserver/managing-lexorank-938847803.html");
+                return CalculatedLexoRanks[lexoRank];
+            }
+
+            // split by bucket and sub-rank delimiters
+            var lexoSplit = lexoRank.Split(new[] {'|', ':'}, StringSplitOptions.RemoveEmptyEntries);
+
+            // calculate the numeric value of the rank and sub-rank (if available)
+            var b36Rank = Base36.Decode(lexoSplit[1]);
+            var b36SubRank = lexoSplit.Length == 3 && !string.IsNullOrEmpty(lexoSplit[2])
+                ? Base36.Decode(lexoSplit[2])
+                : 0L;
+
+            // calculate final rank value
+            var rank = Convert.ToDecimal($"{b36Rank}.{b36SubRank}");
+
+            if (CalculatedRanks.ContainsKey(rank) && CalculatedRanks[rank] != lexoRank)
+            {
+                Logger.Log(LogLevel.Warning, "Duplicate rank detected. You may need to re-balance the JIRA LexoRank. see: https://confluence.atlassian.com/adminjiraserver/managing-lexorank-938847803.html");
+            }
+
+            CalculatedRanks.Add(rank, lexoRank);
+            CalculatedLexoRanks.Add(lexoRank, rank);
+            return rank;
         }
 
         public static string CorrectRenderedHtmlvalue(object value, JiraRevision revision)
